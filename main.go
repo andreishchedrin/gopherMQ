@@ -2,7 +2,6 @@ package main
 
 import (
 	_ "andreishchedrin/gopherMQ/config"
-	"andreishchedrin/gopherMQ/server"
 	"andreishchedrin/gopherMQ/storage"
 	"sync"
 )
@@ -10,9 +9,8 @@ import (
 var wg sync.WaitGroup
 
 func main() {
-	server.Start(&wg)
 	storage.Start(&wg)
-	storage.Test()
-	storage.Print()
+	storage.Test(&wg)
+	storage.Print(&wg)
 	wg.Wait()
 }
