@@ -7,26 +7,9 @@ import (
 	"sync"
 )
 
-type FiberServer struct {
-	app  *fiber.App
-	port string
-}
-
 type AbstractServer interface {
-	Serve() error
+	Serve(abstractHandler AbstractHandler) error
 	Shutdown() error
-}
-
-func (s *FiberServer) Serve() error {
-	s.app.Get("/", func(c *fiber.Ctx) error {
-		return c.SendString("Hello, World 👋!")
-	})
-
-	return s.app.Listen(":" + s.port)
-}
-
-func (s *FiberServer) Shutdown() error {
-	return s.app.Shutdown()
 }
 
 var srv AbstractServer
@@ -39,7 +22,7 @@ func Start(wg *sync.WaitGroup) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		err := srv.Serve()
+		err := srv.Serve(handler)
 		if err != nil {
 			logger.Write(err)
 		}

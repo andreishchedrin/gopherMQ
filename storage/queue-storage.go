@@ -11,22 +11,8 @@ import (
 )
 
 type QueueStorage struct {
-	workerPoolSize int
-	data           map[string]*queue.Queue
-}
-
-type Message struct {
-	key   Key
-	value Value
-}
-
-type Key struct {
-	name string
-}
-
-type Value struct {
-	text      string
-	createdAt time.Time
+	WorkerPoolSize int
+	Data           map[string]*queue.Queue
 }
 
 type AbstractStorage interface {
@@ -37,50 +23,50 @@ type AbstractStorage interface {
 }
 
 func (qs *QueueStorage) Set(key Key) *queue.Queue {
-	_, ok := qs.data[key.name]
+	_, ok := qs.Data[key.Name]
 	if ok {
-		q := qs.data[key.name]
+		q := qs.Data[key.Name]
 		return q
 	}
-	qs.data[key.name] = &queue.Queue{}
-	q := qs.data[key.name]
+	qs.Data[key.Name] = &queue.Queue{}
+	q := qs.Data[key.Name]
 	return q
 }
 
 func (qs *QueueStorage) Get(key Key) (*queue.Queue, error) {
-	_, ok := qs.data[key.name]
+	_, ok := qs.Data[key.Name]
 	if ok {
-		q := qs.data[key.name]
+		q := qs.Data[key.Name]
 		return q, nil
 	}
 	return nil, fmt.Errorf("queue not found")
 }
 
 func (qs *QueueStorage) Delete(key Key) (bool, error) {
-	_, ok := qs.data[key.name]
+	_, ok := qs.Data[key.Name]
 	if ok {
-		delete(qs.data, key.name)
+		delete(qs.Data, key.Name)
 		return true, nil
 	}
 	return false, fmt.Errorf("queue not found")
 }
 
 func (qs *QueueStorage) FlushStorage() {
-	for k := range qs.data {
-		delete(qs.data, k)
+	for k := range qs.Data {
+		delete(qs.Data, k)
 	}
 }
 
 var size int
 var storage AbstractStorage
-var incomeData chan Message
-var incomeErrors chan error
+var IncomeData chan Message
+var IncomeErrors chan error
 
 func init() {
 	size, _ = strconv.Atoi(os.Getenv("KEY_VALUE_WORKERS"))
 	storage = &QueueStorage{size, make(map[string]*queue.Queue)}
-	incomeData = make(chan Message)
-	incomeErrors = make(chan error)
+	IncomeData = make(chan Message)
+	IncomeErrors = make(chan error)
 }
 
 func Start(wg *sync.WaitGroup) {
@@ -89,10 +75,10 @@ func Start(wg *sync.WaitGroup) {
 		defer wg.Done()
 		for {
 			select {
-			case item := <-incomeData:
-				q := storage.Set(item.key)
-				q.Enqueue(item.value)
-				logger.Write(fmt.Sprintf("Put to queue: %s - %s.", item.key.name, item.value.text))
+			case item := <-IncomeData:
+				q := storage.Set(item.Key)
+				q.Enqueue(item.Value)
+				logger.Write(fmt.Sprintf("Put to queue: %s - %s.", item.Key.Name, item.Value.Text))
 			case <-time.After(time.Second * 5):
 				time.Sleep(100 * time.Millisecond)
 			}
@@ -104,7 +90,7 @@ func Start(wg *sync.WaitGroup) {
 		defer wg.Done()
 		for {
 			select {
-			case err := <-incomeErrors:
+			case err := <-IncomeErrors:
 				logger.Write(fmt.Sprintf("Finished with income error: %s\n", err.Error()))
 			case <-time.After(time.Second * 5):
 				time.Sleep(100 * time.Millisecond)
@@ -118,7 +104,7 @@ func Test(wg *sync.WaitGroup) {
 	go func() {
 		defer wg.Done()
 		for i := 0; i < 100; i++ {
-			incomeData <- Message{Key{"queue1"}, Value{"text" + strconv.Itoa(i), time.Now()}}
+			IncomeData <- Message{Key{"queue1"}, Value{"text" + strconv.Itoa(i), time.Now()}}
 		}
 	}()
 
@@ -126,7 +112,7 @@ func Test(wg *sync.WaitGroup) {
 	go func() {
 		defer wg.Done()
 		for i := 0; i < 150; i++ {
-			incomeData <- Message{Key{"queue2"}, Value{"text" + strconv.Itoa(i), time.Now()}}
+			IncomeData <- Message{Key{"queue2"}, Value{"text" + strconv.Itoa(i), time.Now()}}
 		}
 	}()
 
@@ -134,7 +120,7 @@ func Test(wg *sync.WaitGroup) {
 	go func() {
 		defer wg.Done()
 		for i := 0; i < 50; i++ {
-			incomeData <- Message{Key{"queue3"}, Value{"text" + strconv.Itoa(i), time.Now()}}
+			IncomeData <- Message{Key{"queue3"}, Value{"text" + strconv.Itoa(i), time.Now()}}
 		}
 	}()
 }
