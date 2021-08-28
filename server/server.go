@@ -8,7 +8,7 @@ import (
 )
 
 type AbstractServer interface {
-	Serve(abstractHandler AbstractHandler) error
+	Serve() error
 	Shutdown() error
 }
 
@@ -22,9 +22,13 @@ func Start(wg *sync.WaitGroup) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		err := srv.Serve(handler)
+		err := srv.Serve()
 		if err != nil {
 			logger.Write(err)
 		}
 	}()
+}
+
+func Stop() error {
+	return srv.Shutdown()
 }

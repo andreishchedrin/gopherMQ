@@ -1,15 +1,18 @@
 package server
 
-type Setter struct {
-	Name string `json:"name"`
-	Type string `json:"type"`
-}
-
 type Pusher struct {
-	Name    string `json:"name"`
-	Message string `json:"message"`
+	Name    string `json:"name" validate:"required"`
+	Message string `json:"message" validate:"required"`
 }
 
 type Puller struct {
-	Name string `json:"name"`
+	Name string `json:"name" validate:"required"`
 }
+
+type ErrorResponse struct {
+	FailedField string
+	Tag         string
+	Value       string
+}
+
+type Client struct{}

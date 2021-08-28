@@ -1,48 +1,57 @@
 package server
 
-import "github.com/gofiber/fiber/v2"
+import (
+	"andreishchedrin/gopherMQ/logger"
+	"fmt"
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/websocket/v2"
+)
 
 type FiberServer struct {
 	app  *fiber.App
 	port string
 }
 
-func (s *FiberServer) Serve(h AbstractHandler) error {
+func (s *FiberServer) Serve() error {
 	s.app.Get("/", func(c *fiber.Ctx) error {
 		return c.SendString("Hello, World 👋!")
 	})
 
 	s.app.Static("/info", "./static/info.html")
 
-	s.app.Post("/set", func(c *fiber.Ctx) error {
-		c.Accepts("application/json")
-		setter := new(Setter)
-		if err := c.BodyParser(setter); err != nil {
-			return err
-		}
-		h.SetterHandler(setter)
-		return c.SendStatus(200)
-	})
+	s.app.Post("/broadcast", BroadcastHandler)
 
-	s.app.Post("/push", func(c *fiber.Ctx) error {
-		c.Accepts("application/json")
-		pusher := new(Pusher)
-		if err := c.BodyParser(pusher); err != nil {
-			return err
-		}
-		h.PusherHandler(pusher)
-		return c.SendStatus(200)
-	})
+	s.app.Post("/push", PusherHandler)
 
-	s.app.Post("/pull", func(c *fiber.Ctx) error {
-		c.Accepts("application/json")
-		puller := new(Puller)
-		if err := c.BodyParser(puller); err != nil {
-			return err
-		}
+	s.app.Post("/pull", PullerHandler)
 
-		return c.SendStatus(200)
-	})
+	s.app.Get("/ws", websocket.New(func(c *websocket.Conn) {
+		defer func() {
+			unregister <- c
+			c.Close()
+		}()
+
+		// Register the client
+		register <- c
+
+		for {
+			messageType, message, err := c.ReadMessage()
+			if err != nil {
+				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+					logger.Write(fmt.Sprintf("Read error: %v", err))
+				}
+
+				return // Calls the deferred function, i.e. closes the connection on error
+			}
+
+			if messageType == websocket.TextMessage {
+				// Broadcast the received message
+				broadcast <- string(message)
+			} else {
+				logger.Write(fmt.Sprintf("Websocket message received of type: %v", messageType))
+			}
+		}
+	}))
 
 	return s.app.Listen(":" + s.port)
 }
