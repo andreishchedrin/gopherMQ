@@ -1,6 +1,9 @@
 package storage
 
-import "time"
+import (
+	"github.com/golang-collections/collections/queue"
+	"time"
+)
 
 type Message struct {
 	Key   Key
@@ -14,4 +17,8 @@ type Key struct {
 type Value struct {
 	Text      string
 	CreatedAt time.Time
+}
+
+type QueueStorage struct {
+	Data map[string]*queue.Queue
 }

@@ -4,16 +4,10 @@ import (
 	"andreishchedrin/gopherMQ/logger"
 	"fmt"
 	"github.com/golang-collections/collections/queue"
-	"os"
 	"strconv"
 	"sync"
 	"time"
 )
-
-type QueueStorage struct {
-	WorkerPoolSize int
-	Data           map[string]*queue.Queue
-}
 
 type AbstractStorage interface {
 	Set(key Key) *queue.Queue
@@ -57,18 +51,12 @@ func (qs *QueueStorage) FlushStorage() {
 	}
 }
 
-var size int
 var Storage AbstractStorage
 var PushData chan Message
 
-//var IncomeErrors chan error
-
 func init() {
-	size, _ = strconv.Atoi(os.Getenv("KEY_VALUE_WORKERS"))
-	Storage = &QueueStorage{size, make(map[string]*queue.Queue)}
+	Storage = &QueueStorage{make(map[string]*queue.Queue)}
 	PushData = make(chan Message)
-
-	//IncomeErrors = make(chan error)
 }
 
 func Start(wg *sync.WaitGroup) {
@@ -86,20 +74,6 @@ func Start(wg *sync.WaitGroup) {
 			}
 		}
 	}()
-
-	// @TODO not use now
-	//wg.Add(1)
-	//go func() {
-	//	defer wg.Done()
-	//	for {
-	//		select {
-	//		case err := <-IncomeErrors:
-	//			logger.Write(fmt.Sprintf("Finished with income error: %s\n", err.Error()))
-	//		case <-time.After(time.Second * 5):
-	//			time.Sleep(100 * time.Millisecond)
-	//		}
-	//	}
-	//}()
 }
 
 func Test(wg *sync.WaitGroup) {
