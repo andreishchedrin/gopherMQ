@@ -1,12 +1,9 @@
 package server
 
 import (
-	"andreishchedrin/gopherMQ/logger"
 	"andreishchedrin/gopherMQ/storage"
-	"fmt"
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/websocket/v2"
 	"time"
 )
 
@@ -23,7 +20,7 @@ func BroadcastHandler(c *fiber.Ctx) error {
 		return c.JSON(errors)
 	}
 
-	//send to broadcast channel
+	broadcastMessage <- pusher
 
 	return c.SendStatus(200)
 }
@@ -71,6 +68,7 @@ func ValidateStruct(s interface{}) []*ErrorResponse {
 	var errors []*ErrorResponse
 	validate := validator.New()
 	err := validate.Struct(s)
+
 	if err != nil {
 		for _, err := range err.(validator.ValidationErrors) {
 			var element ErrorResponse
@@ -80,52 +78,6 @@ func ValidateStruct(s interface{}) []*ErrorResponse {
 			errors = append(errors, &element)
 		}
 	}
+
 	return errors
-}
-
-var channels = make(map[string]map[*websocket.Conn]Client)
-var clients = make(map[*websocket.Conn]Client)
-var register = make(chan *websocket.Conn)
-var broadcast = make(chan string)
-var unregister = make(chan *websocket.Conn)
-
-func Listen() {
-	for {
-		select {
-		case connection := <-register:
-			clients[connection] = Client{}
-			logger.Write(fmt.Sprintf("Connection registered %v", connection))
-			logger.Write(fmt.Sprintf("Clients pool now is:  %v", clients))
-		case message := <-broadcast:
-			logger.Write(fmt.Sprintf("Message received: %s", message))
-
-			//channels[message][] =
-			//puller := new(Puller)
-			//
-			//if err := c.BodyParser(puller); err != nil {
-			//	logger.Write(fmt.Sprintf("Context BodyParser message error: %s", err.Error()))
-			//}
-			//
-			//errors := ValidateStruct(*puller)
-			//if errors != nil {
-			//	return c.JSON(errors)
-			//}
-
-			// Send the message to all clients
-			//for connection := range clients {
-			//	if err := connection.WriteMessage(websocket.TextMessage, []byte(message)); err != nil {
-			//		logger.Write(fmt.Sprintf("Write error: %v", err))
-			//
-			//		connection.WriteMessage(websocket.CloseMessage, []byte{})
-			//		connection.Close()
-			//		delete(clients, connection)
-			//	}
-			//}
-
-		case connection := <-unregister:
-			// Remove the client from the hub
-			delete(clients, connection)
-			logger.Write("Connection unregistered")
-		}
-	}
 }

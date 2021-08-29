@@ -11,7 +11,7 @@ var wg sync.WaitGroup
 
 func main() {
 
-	go server.Listen()
+	go server.WebsocketListen()
 
 	server.Start(&wg)
 

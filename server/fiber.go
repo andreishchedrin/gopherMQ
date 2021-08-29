@@ -35,20 +35,16 @@ func (s *FiberServer) Serve() error {
 		register <- c
 
 		for {
-			messageType, message, err := c.ReadMessage()
-			if err != nil {
-				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-					logger.Write(fmt.Sprintf("Read error: %v", err))
+			ws <- c
+			select {
+			case messageError := <-messageErrors:
+				if messageError != nil {
+					if websocket.IsUnexpectedCloseError(messageError, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+						logger.Write(fmt.Sprintf("Read error: %v", messageError))
+					}
+
+					return // Calls the deferred function, i.e. closes the connection on error
 				}
-
-				return // Calls the deferred function, i.e. closes the connection on error
-			}
-
-			if messageType == websocket.TextMessage {
-				// Broadcast the received message
-				broadcast <- string(message)
-			} else {
-				logger.Write(fmt.Sprintf("Websocket message received of type: %v", messageType))
 			}
 		}
 	}))
