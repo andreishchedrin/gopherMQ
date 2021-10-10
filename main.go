@@ -2,6 +2,7 @@ package main
 
 import (
 	_ "andreishchedrin/gopherMQ/config"
+	"andreishchedrin/gopherMQ/db"
 	"andreishchedrin/gopherMQ/server"
 	"andreishchedrin/gopherMQ/storage"
 	"sync"
@@ -10,6 +11,7 @@ import (
 var wg sync.WaitGroup
 
 func main() {
+	db.Prepare()
 
 	go server.WebsocketListen()
 
