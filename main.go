@@ -12,18 +12,12 @@ var wg sync.WaitGroup
 
 func main() {
 	db.Prepare()
+	defer db.Close()
 
 	go server.WebsocketListen()
 
 	server.Start(&wg)
-
-	// @TODO
-	defer func() {
-		err := server.Stop()
-		if err != nil {
-
-		}
-	}()
+	defer server.Stop()
 
 	storage.Start(&wg)
 	//storage.Test(&wg)

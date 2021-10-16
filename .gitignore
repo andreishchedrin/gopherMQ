@@ -1,3 +1,4 @@
 .idea/
 /config/.env
-/logs/mq.log
+/logs
+persistent.db
