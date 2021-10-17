@@ -1,20 +1,12 @@
 package storage
 
 import (
-	"andreishchedrin/gopherMQ/logger"
 	"fmt"
 	"github.com/golang-collections/collections/queue"
 	"strconv"
 	"sync"
 	"time"
 )
-
-type AbstractStorage interface {
-	Set(key Key) *queue.Queue
-	Get(key Key) (*queue.Queue, error)
-	Delete(key Key) (bool, error)
-	FlushStorage()
-}
 
 func (qs *QueueStorage) Set(key Key) *queue.Queue {
 	_, ok := qs.Data[key.Name]
@@ -45,35 +37,10 @@ func (qs *QueueStorage) Delete(key Key) (bool, error) {
 	return false, fmt.Errorf("queue not found")
 }
 
-func (qs *QueueStorage) FlushStorage() {
+func (qs *QueueStorage) Flush() {
 	for k := range qs.Data {
 		delete(qs.Data, k)
 	}
-}
-
-var Storage AbstractStorage
-var PushData chan Message
-
-func init() {
-	Storage = &QueueStorage{make(map[string]*queue.Queue)}
-	PushData = make(chan Message)
-}
-
-func Start(wg *sync.WaitGroup) {
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		for {
-			select {
-			case item := <-PushData:
-				q := Storage.Set(item.Key)
-				q.Enqueue(item.Value)
-				logger.Write(fmt.Sprintf("Put to queue: %s - %s.", item.Key.Name, item.Value.Text))
-			case <-time.After(time.Second * 5):
-				time.Sleep(100 * time.Millisecond)
-			}
-		}
-	}()
 }
 
 func Test(wg *sync.WaitGroup) {

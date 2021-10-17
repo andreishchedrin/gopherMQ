@@ -1,6 +1,7 @@
 package server
 
 import (
+	"andreishchedrin/gopherMQ/db"
 	"andreishchedrin/gopherMQ/storage"
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
@@ -25,7 +26,7 @@ func BroadcastHandler(c *fiber.Ctx) error {
 	return c.SendStatus(200)
 }
 
-func PusherHandler(c *fiber.Ctx) error {
+func PushHandler(c *fiber.Ctx) error {
 	c.Accepts("application/json")
 	pusher := new(Pusher)
 
@@ -43,7 +44,7 @@ func PusherHandler(c *fiber.Ctx) error {
 	return c.SendStatus(200)
 }
 
-func PullerHandler(c *fiber.Ctx) error {
+func PullHandler(c *fiber.Ctx) error {
 	c.Accepts("application/json")
 	puller := new(Puller)
 
@@ -56,12 +57,52 @@ func PullerHandler(c *fiber.Ctx) error {
 		return c.JSON(errors)
 	}
 
-	q, err := storage.Storage.Get(storage.Key{Name: puller.Name})
+	q, err := storage.Get(storage.Key{Name: puller.Name})
 	if err != nil {
 		return c.JSON(err.Error())
 	}
 
 	return c.Status(200).JSON(q.Dequeue())
+}
+
+func PublishHandler(c *fiber.Ctx) error {
+	c.Accepts("application/json")
+	pusher := new(Pusher)
+
+	if err := c.BodyParser(pusher); err != nil {
+		return c.Status(400).JSON(err.Error())
+	}
+
+	errors := ValidateStruct(*pusher)
+	if errors != nil {
+		return c.JSON(errors)
+	}
+
+	query := "INSERT INTO message (channel, payload) VALUES (?, ?)"
+
+	params := []interface{}{pusher.Name, pusher.Message}
+
+	db.ExecuteWithParams(query, params...)
+
+	return c.SendStatus(200)
+}
+
+func ConsumeHandler(c *fiber.Ctx) error {
+	c.Accepts("application/json")
+	puller := new(Puller)
+
+	if err := c.BodyParser(puller); err != nil {
+		return c.Status(400).JSON(err.Error())
+	}
+
+	errors := ValidateStruct(*puller)
+	if errors != nil {
+		return c.JSON(errors)
+	}
+
+	//@TODO
+
+	return c.Status(200).JSON("a")
 }
 
 func ValidateStruct(s interface{}) []*ErrorResponse {
