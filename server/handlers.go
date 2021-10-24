@@ -78,11 +78,7 @@ func PublishHandler(c *fiber.Ctx) error {
 		return c.JSON(errors)
 	}
 
-	query := "INSERT INTO message (channel, payload) VALUES (?, ?)"
-
-	params := []interface{}{pusher.Name, pusher.Message}
-
-	db.ExecuteWithParams(query, params...)
+	db.InsertMessage([]interface{}{pusher.Name, pusher.Message}...)
 
 	return c.SendStatus(200)
 }
@@ -100,9 +96,13 @@ func ConsumeHandler(c *fiber.Ctx) error {
 		return c.JSON(errors)
 	}
 
-	//@TODO
+	clientId := db.InsertClient([]interface{}{c.IP(), puller.Name}...)
 
-	return c.Status(200).JSON("a")
+	messageId, messagePayload := db.SelectMessage([]interface{}{puller.Name, clientId}...)
+
+	db.InsertClientMessage([]interface{}{clientId, messageId}...)
+
+	return c.Status(200).JSON(messagePayload)
 }
 
 func ValidateStruct(s interface{}) []*ErrorResponse {

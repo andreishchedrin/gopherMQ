@@ -36,23 +36,64 @@ func (sqlite *Sqlite) Prepare() {
 	sqlite.Execute(queryClientMessage)
 }
 
-func (sqlite *Sqlite) Execute(query string) {
-	_, err := sqlite.ConnectInstance.Exec(query)
+func (sqlite *Sqlite) Execute(query string) int64 {
+	res, err := sqlite.ConnectInstance.Exec(query)
+
 	if err != nil && sqlite.Debug == 1 {
 		logger.Write(fmt.Sprintf("SQL statement %s error: %q", query, err))
 	}
+
+	if res != nil {
+		lastInsertId, _ := res.LastInsertId()
+		return lastInsertId
+	}
+
+	return 0
 }
 
-func (sqlite *Sqlite) ExecuteWithParams(query string, params ...interface{}) {
+func (sqlite *Sqlite) ExecuteWithParams(query string, params ...interface{}) int64 {
 	stmt, err := sqlite.ConnectInstance.Prepare(query)
+
 	if err != nil {
 		logger.Write(fmt.Sprintf("SQL statement %s error: %q", query, err))
 	}
+
 	defer stmt.Close()
 
-	_, err = stmt.Exec(params...)
+	res, err := stmt.Exec(params...)
 
 	if err != nil {
 		logger.Write(fmt.Sprintf("SQL statement %s error: %q", query, err))
 	}
+
+	if res != nil {
+		lastInsertId, _ := res.LastInsertId()
+		return lastInsertId
+	}
+
+	return 0
+}
+
+func (sqlite *Sqlite) QueryRow(query string, params ...interface{}) *sql.Row {
+	stmt, err := sqlite.ConnectInstance.Prepare(query)
+
+	if err != nil {
+		logger.Write(fmt.Sprintf("SQL statement %s error: %q", query, err))
+	}
+
+	defer stmt.Close()
+
+	return stmt.QueryRow(params...)
+}
+
+func (sqlite *Sqlite) QueryRows(query string, params ...interface{}) (*sql.Rows, error) {
+	stmt, err := sqlite.ConnectInstance.Prepare(query)
+
+	if err != nil {
+		logger.Write(fmt.Sprintf("SQL statement %s error: %q", query, err))
+	}
+
+	defer stmt.Close()
+
+	return stmt.Query(params...)
 }
