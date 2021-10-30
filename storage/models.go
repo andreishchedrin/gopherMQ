@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"andreishchedrin/gopherMQ/logger"
 	"github.com/golang-collections/collections/queue"
 	"time"
 )
@@ -20,5 +21,6 @@ type Value struct {
 }
 
 type QueueStorage struct {
-	Data map[string]*queue.Queue
+	Data   map[string]*queue.Queue
+	Logger logger.AbstractLogger
 }

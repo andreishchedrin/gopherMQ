@@ -1,31 +1,26 @@
 package server
 
 import (
-	"andreishchedrin/gopherMQ/logger"
 	"fmt"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/websocket/v2"
+	"sync"
 )
 
-type FiberServer struct {
-	app  *fiber.App
-	port string
-}
-
 func (s *FiberServer) Serve() error {
-	s.app.Get("/", func(c *fiber.Ctx) error {
+	s.App.Get("/", func(c *fiber.Ctx) error {
 		return c.SendString("Hello, World 👋!")
 	})
 
-	s.app.Static("/info", "./static/info.html")
+	s.App.Static("/info", "./static/info.html")
 
-	s.app.Post("/broadcast", BroadcastHandler)
+	s.App.Post("/broadcast", s.BroadcastHandler)
 
-	s.app.Post("/push", PushHandler)
+	s.App.Post("/push", s.PushHandler)
 
-	s.app.Post("/pull", PullHandler)
+	s.App.Post("/pull", s.PullHandler)
 
-	s.app.Get("/ws", websocket.New(func(c *websocket.Conn) {
+	s.App.Get("/ws", websocket.New(func(c *websocket.Conn) {
 		defer func() {
 			unregister <- c
 			c.Close()
@@ -40,7 +35,7 @@ func (s *FiberServer) Serve() error {
 			case messageError := <-messageErrors:
 				if messageError != nil {
 					if websocket.IsUnexpectedCloseError(messageError, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-						logger.Write(fmt.Sprintf("Read error: %v", messageError))
+						s.Logger.Log(fmt.Sprintf("Read error: %v", messageError))
 					}
 
 					return // Calls the deferred function, i.e. closes the connection on error
@@ -49,15 +44,30 @@ func (s *FiberServer) Serve() error {
 		}
 	}))
 
-	s.app.Post("/publish", PublishHandler)
+	s.App.Post("/publish", s.PublishHandler)
 
 	//s.app.Post('/subscribe', SubscribeHandler)
 
-	s.app.Post("/consume", ConsumeHandler)
+	s.App.Post("/consume", s.ConsumeHandler)
 
-	return s.app.Listen(":" + s.port)
+	return s.App.Listen(":" + s.Port)
 }
 
 func (s *FiberServer) Shutdown() error {
-	return s.app.Shutdown()
+	return s.App.Shutdown()
+}
+
+func (s *FiberServer) Start(wg *sync.WaitGroup) {
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		err := s.Serve()
+		if err != nil {
+			s.Logger.Log(err)
+		}
+	}()
+}
+
+func (s *FiberServer) Stop() error {
+	return s.Shutdown()
 }

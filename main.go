@@ -2,24 +2,22 @@ package main
 
 import (
 	_ "andreishchedrin/gopherMQ/config"
-	"andreishchedrin/gopherMQ/db"
-	"andreishchedrin/gopherMQ/server"
-	"andreishchedrin/gopherMQ/storage"
+	"andreishchedrin/gopherMQ/container"
 	"sync"
 )
 
 var wg sync.WaitGroup
 
 func main() {
-	db.Prepare()
-	defer db.Close()
+	container.DbInstance.Prepare()
+	defer container.DbInstance.Close()
 
-	go server.WebsocketListen()
+	go container.ServerInstance.WebsocketListen()
 
-	server.Start(&wg)
-	defer server.Stop()
+	container.ServerInstance.Start(&wg)
+	defer container.ServerInstance.Stop()
 
-	storage.Start(&wg)
+	container.StorageInstance.Start(&wg)
 	//storage.Test(&wg)
 	//storage.Print(&wg)
 	wg.Wait()

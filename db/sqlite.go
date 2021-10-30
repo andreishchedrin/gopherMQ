@@ -4,22 +4,12 @@ import (
 	"andreishchedrin/gopherMQ/logger"
 	"database/sql"
 	"fmt"
-	"log"
 )
 
 type Sqlite struct {
 	ConnectInstance *sql.DB
 	Debug           int
-}
-
-func Connect() *sql.DB {
-	db, err := sql.Open("sqlite3", "persistent.db")
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return db
+	Logger          logger.AbstractLogger
 }
 
 func (sqlite *Sqlite) Close() {
@@ -40,7 +30,7 @@ func (sqlite *Sqlite) Execute(query string) int64 {
 	res, err := sqlite.ConnectInstance.Exec(query)
 
 	if err != nil && sqlite.Debug == 1 {
-		logger.Write(fmt.Sprintf("SQL statement %s error: %q", query, err))
+		sqlite.Logger.Log(fmt.Sprintf("SQL statement %s error: %q", query, err))
 	}
 
 	if res != nil {
@@ -55,7 +45,7 @@ func (sqlite *Sqlite) ExecuteWithParams(query string, params ...interface{}) int
 	stmt, err := sqlite.ConnectInstance.Prepare(query)
 
 	if err != nil {
-		logger.Write(fmt.Sprintf("SQL statement %s error: %q", query, err))
+		sqlite.Logger.Log(fmt.Sprintf("SQL statement %s error: %q", query, err))
 	}
 
 	defer stmt.Close()
@@ -63,7 +53,7 @@ func (sqlite *Sqlite) ExecuteWithParams(query string, params ...interface{}) int
 	res, err := stmt.Exec(params...)
 
 	if err != nil {
-		logger.Write(fmt.Sprintf("SQL statement %s error: %q", query, err))
+		sqlite.Logger.Log(fmt.Sprintf("SQL statement %s error: %q", query, err))
 	}
 
 	if res != nil {
@@ -78,7 +68,7 @@ func (sqlite *Sqlite) QueryRow(query string, params ...interface{}) *sql.Row {
 	stmt, err := sqlite.ConnectInstance.Prepare(query)
 
 	if err != nil {
-		logger.Write(fmt.Sprintf("SQL statement %s error: %q", query, err))
+		sqlite.Logger.Log(fmt.Sprintf("SQL statement %s error: %q", query, err))
 	}
 
 	defer stmt.Close()
@@ -90,10 +80,58 @@ func (sqlite *Sqlite) QueryRows(query string, params ...interface{}) (*sql.Rows,
 	stmt, err := sqlite.ConnectInstance.Prepare(query)
 
 	if err != nil {
-		logger.Write(fmt.Sprintf("SQL statement %s error: %q", query, err))
+		sqlite.Logger.Log(fmt.Sprintf("SQL statement %s error: %q", query, err))
 	}
 
 	defer stmt.Close()
 
 	return stmt.Query(params...)
+}
+
+func (sqlite *Sqlite) InsertMessage(params ...interface{}) int64 {
+	query := "INSERT INTO message (channel, payload) VALUES (?, ?)"
+	return sqlite.ExecuteWithParams(query, params...)
+}
+
+func (sqlite *Sqlite) SelectMessage(params ...interface{}) (int64, string) {
+	query := "SELECT m.id, m.payload FROM message m WHERE m.channel = ? AND NOT EXISTS (SELECT 1 FROM client_message cm WHERE cm.message_id = m.id AND cm.client_id = ?); ORDER BY created_at DESC LIMIT 1"
+	row := sqlite.QueryRow(query, params...)
+
+	return func(r *sql.Row) (int64, string) {
+		var id int64
+		var payload string
+		err := r.Scan(&id, &payload)
+		if err != nil {
+			return 0, "no message found."
+		}
+
+		return id, payload
+	}(row)
+}
+
+func (sqlite *Sqlite) InsertClient(params ...interface{}) int64 {
+	querySelect := "SELECT id FROM client WHERE ip = ? AND channel = ?"
+	row := sqlite.QueryRow(querySelect, params...)
+
+	clientId := func(r *sql.Row) int64 {
+		var id int64
+		err := r.Scan(&id)
+		if err != nil {
+			return 0
+		}
+
+		return id
+	}(row)
+
+	if clientId != 0 {
+		return clientId
+	}
+
+	queryInsert := "INSERT INTO client (ip, channel) VALUES (?, ?)"
+	return sqlite.ExecuteWithParams(queryInsert, params...)
+}
+
+func (sqlite *Sqlite) InsertClientMessage(params ...interface{}) {
+	query := "INSERT INTO client_message (client_id, message_id) VALUES (?, ?)"
+	sqlite.ExecuteWithParams(query, params...)
 }

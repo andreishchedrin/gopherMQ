@@ -1,7 +1,6 @@
 package server
 
 import (
-	"andreishchedrin/gopherMQ/logger"
 	"fmt"
 	"github.com/gofiber/websocket/v2"
 	"os"
@@ -16,7 +15,7 @@ var unregister = make(chan *websocket.Conn)
 var messageErrors = make(chan error)
 var broadcastMessage = make(chan *Pusher)
 
-func WebsocketListen() {
+func (s *FiberServer) WebsocketListen() {
 	debug, _ := strconv.Atoi(os.Getenv("ENABLE_WS_LOG"))
 
 	for {
@@ -24,13 +23,13 @@ func WebsocketListen() {
 		case connection := <-register:
 			clients[connection] = Client{}
 			if debug == 1 {
-				logger.Write(fmt.Sprintf("Connection registered %v", connection))
-				logger.Write(fmt.Sprintf("Clients pool now is:  %v", clients))
+				s.Logger.Log(fmt.Sprintf("Connection registered %v", connection))
+				s.Logger.Log(fmt.Sprintf("Clients pool now is:  %v", clients))
 			}
 		case connection := <-unregister:
 			delete(clients, connection)
 			if debug == 1 {
-				logger.Write("Connection unregistered")
+				s.Logger.Log("Connection unregistered")
 			}
 		case subscribe := <-ws:
 			_, ok := clients[subscribe]
@@ -46,15 +45,15 @@ func WebsocketListen() {
 				}
 
 				if debug == 1 {
-					logger.Write(fmt.Sprintf("Websocket message received of type: %v", messageType))
-					logger.Write(fmt.Sprintf("Message received: %s", string(messageBody)))
+					s.Logger.Log(fmt.Sprintf("Websocket message received of type: %v", messageType))
+					s.Logger.Log(fmt.Sprintf("Message received: %s", string(messageBody)))
 				}
 			}
 
 		case message := <-broadcastMessage:
 			for connection := range channels[message.Name] {
 				if err := connection.WriteMessage(websocket.TextMessage, []byte(message.Message)); err != nil {
-					logger.Write(fmt.Sprintf("write error: %v", err))
+					s.Logger.Log(fmt.Sprintf("write error: %v", err))
 					connection.WriteMessage(websocket.CloseMessage, []byte{})
 					connection.Close()
 				}

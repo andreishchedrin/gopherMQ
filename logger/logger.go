@@ -6,7 +6,7 @@ import (
 )
 
 type Logger struct {
-	file string
+	File string
 }
 
 type AbstractLogger interface {
@@ -14,7 +14,7 @@ type AbstractLogger interface {
 }
 
 func (l *Logger) Log(text interface{}) {
-	f, err := os.OpenFile(l.file, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	f, err := os.OpenFile(l.File, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		log.Fatalf("Error opening file: %v", err)
 	}
@@ -22,14 +22,4 @@ func (l *Logger) Log(text interface{}) {
 
 	log.SetOutput(f)
 	log.Println(text)
-}
-
-var logger AbstractLogger
-
-func init() {
-	logger = &Logger{os.Getenv("LOG_FILE")}
-}
-
-func Write(text interface{}) {
-	logger.Log(text)
 }
