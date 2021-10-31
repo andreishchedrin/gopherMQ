@@ -12,6 +12,9 @@ func main() {
 	container.DbInstance.Prepare()
 	defer container.DbInstance.Close()
 
+	container.DbInstance.StartCleaner(&wg)
+	defer container.DbInstance.StopCleaner()
+
 	go container.ServerInstance.WebsocketListen()
 
 	container.ServerInstance.Start(&wg)

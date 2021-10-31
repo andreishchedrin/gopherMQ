@@ -4,12 +4,14 @@ import (
 	"andreishchedrin/gopherMQ/logger"
 	"database/sql"
 	"fmt"
+	"os"
 )
 
 type Sqlite struct {
 	ConnectInstance *sql.DB
 	Debug           int
 	Logger          logger.AbstractLogger
+	CleanerExit     chan bool
 }
 
 func (sqlite *Sqlite) Close() {
@@ -134,4 +136,9 @@ func (sqlite *Sqlite) InsertClient(params ...interface{}) int64 {
 func (sqlite *Sqlite) InsertClientMessage(params ...interface{}) {
 	query := "INSERT INTO client_message (client_id, message_id) VALUES (?, ?)"
 	sqlite.ExecuteWithParams(query, params...)
+}
+
+func (sqlite *Sqlite) deleteOverdueMessages() {
+	query := "DELETE FROM message WHERE created_at <= datetime('now', '-" + os.Getenv("PERSISTENT_TTL_DAYS") + " days')"
+	sqlite.Execute(query)
 }

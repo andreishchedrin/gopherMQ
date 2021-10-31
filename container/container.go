@@ -21,11 +21,18 @@ func init() {
 
 	enableDbLog, _ := strconv.Atoi(os.Getenv("ENABLE_DB_LOG"))
 	DbInstance = &db.Sqlite{
-		db.Connect(os.Getenv("DB_DRIVER_NAME"), os.Getenv("DB_DATA_SOURCE_NAME")),
-		enableDbLog,
-		LoggerInstance,
+		ConnectInstance: db.Connect(os.Getenv("DB_DRIVER_NAME"), os.Getenv("DB_DATA_SOURCE_NAME")),
+		Debug:           enableDbLog,
+		Logger:          LoggerInstance,
+		CleanerExit:     make(chan bool),
 	}
 
-	StorageInstance = &storage.QueueStorage{make(map[string]*queue.Queue), LoggerInstance}
-	ServerInstance = &server.FiberServer{fiber.New(), os.Getenv("SERVER_PORT"), LoggerInstance, DbInstance, StorageInstance}
+	StorageInstance = &storage.QueueStorage{Data: make(map[string]*queue.Queue), Logger: LoggerInstance}
+	ServerInstance = &server.FiberServer{
+		App:     fiber.New(),
+		Port:    os.Getenv("SERVER_PORT"),
+		Logger:  LoggerInstance,
+		Db:      DbInstance,
+		Storage: StorageInstance,
+	}
 }

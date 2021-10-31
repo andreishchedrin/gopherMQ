@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	_ "github.com/mattn/go-sqlite3"
 	"log"
+	"sync"
 )
 
 type AbstractDb interface {
@@ -17,6 +18,8 @@ type AbstractDb interface {
 	SelectMessage(params ...interface{}) (int64, string)
 	InsertClient(params ...interface{}) int64
 	InsertClientMessage(params ...interface{})
+	StartCleaner(wg *sync.WaitGroup)
+	StopCleaner()
 }
 
 func Connect(driverName string, dataSourceName string) *sql.DB {

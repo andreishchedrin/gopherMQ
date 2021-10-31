@@ -19,8 +19,8 @@ func (qs *QueueStorage) Start(wg *sync.WaitGroup) {
 				q := qs.Set(item.Key)
 				q.Enqueue(item.Value)
 				qs.Logger.Log(fmt.Sprintf("Put to queue: %s - %s.", item.Key.Name, item.Value.Text))
-			case <-time.After(time.Second * 5):
-				time.Sleep(100 * time.Millisecond)
+			default:
+				time.Sleep(1 * time.Millisecond)
 			}
 		}
 	}()
