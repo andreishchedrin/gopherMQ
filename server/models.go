@@ -8,12 +8,12 @@ import (
 )
 
 type Pusher struct {
-	Name    string `json:"name" validate:"required"`
+	Channel string `json:"channel" validate:"required"`
 	Message string `json:"message" validate:"required"`
 }
 
 type Puller struct {
-	Name string `json:"name" validate:"required"`
+	Channel string `json:"channel" validate:"required"`
 }
 
 type ErrorResponse struct {
@@ -30,4 +30,12 @@ type FiberServer struct {
 	Logger  logger.AbstractLogger
 	Db      db.AbstractDb
 	Storage storage.AbstractStorage
+}
+
+type Task struct {
+	Name    string `json:"name" validate:"required"`
+	Channel string `json:"channel" validate:"required"`
+	Message string `json:"message" validate:"required"`
+	Type    string `json:"type" validate:"required,oneof=broadcast queue persist"`
+	Time    string `json:"time" validate:"required"`
 }

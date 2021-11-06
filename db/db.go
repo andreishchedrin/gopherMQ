@@ -20,6 +20,8 @@ type AbstractDb interface {
 	InsertClientMessage(params ...interface{})
 	StartCleaner(wg *sync.WaitGroup)
 	StopCleaner()
+	StartScheduler(wg *sync.WaitGroup)
+	StopScheduler()
 }
 
 func Connect(driverName string, dataSourceName string) *sql.DB {

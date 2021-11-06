@@ -36,7 +36,7 @@ func (s *FiberServer) PushHandler(c *fiber.Ctx) error {
 		return c.JSON(errors)
 	}
 
-	s.Storage.Push(pusher.Name, pusher.Message)
+	s.Storage.Push(pusher.Channel, pusher.Message)
 	return c.SendStatus(200)
 }
 
@@ -53,7 +53,7 @@ func (s *FiberServer) PullHandler(c *fiber.Ctx) error {
 		return c.JSON(errors)
 	}
 
-	message, err := s.Storage.Pull(puller.Name)
+	message, err := s.Storage.Pull(puller.Channel)
 	if err != nil {
 		return c.JSON(err.Error())
 	}
@@ -74,7 +74,7 @@ func (s *FiberServer) PublishHandler(c *fiber.Ctx) error {
 		return c.JSON(errors)
 	}
 
-	s.Db.InsertMessage([]interface{}{pusher.Name, pusher.Message}...)
+	s.Db.InsertMessage([]interface{}{pusher.Channel, pusher.Message}...)
 
 	return c.SendStatus(200)
 }
@@ -92,9 +92,9 @@ func (s *FiberServer) ConsumeHandler(c *fiber.Ctx) error {
 		return c.JSON(errors)
 	}
 
-	clientId := s.Db.InsertClient([]interface{}{c.IP(), puller.Name}...)
+	clientId := s.Db.InsertClient([]interface{}{c.IP(), puller.Channel}...)
 
-	messageId, messagePayload := s.Db.SelectMessage([]interface{}{puller.Name, clientId}...)
+	messageId, messagePayload := s.Db.SelectMessage([]interface{}{puller.Channel, clientId}...)
 
 	s.Db.InsertClientMessage([]interface{}{clientId, messageId}...)
 

@@ -51,7 +51,7 @@ func (s *FiberServer) WebsocketListen() {
 			}
 
 		case message := <-broadcastMessage:
-			for connection := range channels[message.Name] {
+			for connection := range channels[message.Channel] {
 				if err := connection.WriteMessage(websocket.TextMessage, []byte(message.Message)); err != nil {
 					s.Logger.Log(fmt.Sprintf("write error: %v", err))
 					connection.WriteMessage(websocket.CloseMessage, []byte{})

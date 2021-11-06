@@ -12,6 +12,7 @@ type Sqlite struct {
 	Debug           int
 	Logger          logger.AbstractLogger
 	CleanerExit     chan bool
+	SchedulerExit   chan bool
 }
 
 func (sqlite *Sqlite) Close() {
@@ -22,10 +23,12 @@ func (sqlite *Sqlite) Prepare() {
 	queryMessage := "CREATE TABLE IF NOT EXISTS message (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, channel TEXT NOT NULL, payload TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);"
 	queryClient := "CREATE TABLE IF NOT EXISTS client (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, ip TEXT NOT NULL, channel TEXT NOT NULL, connected_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, CONSTRAINT unique_ip_channel_index UNIQUE (ip, channel) ON CONFLICT ROLLBACK);"
 	queryClientMessage := "CREATE TABLE IF NOT EXISTS client_message (client_id INTEGER NOT NULL, message_id INTEGER NOT NULL, FOREIGN KEY (client_id) REFERENCES client(id) ON DELETE CASCADE, FOREIGN KEY (message_id) REFERENCES message(id) ON DELETE CASCADE);"
+	queryScheduler := "CREATE TABLE IF NOT EXISTS task (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, channel TEXT NOT NULL, message TEXT NOT NULL, type TEXT NOT NULL, time TEXT NOT NULL, CONSTRAINT unique_name_channel_index UNIQUE (name, channel) ON CONFLICT ROLLBACK);"
 
 	sqlite.Execute(queryMessage)
 	sqlite.Execute(queryClient)
 	sqlite.Execute(queryClientMessage)
+	sqlite.Execute(queryScheduler)
 }
 
 func (sqlite *Sqlite) Execute(query string) int64 {
@@ -141,4 +144,16 @@ func (sqlite *Sqlite) InsertClientMessage(params ...interface{}) {
 func (sqlite *Sqlite) deleteOverdueMessages() {
 	query := "DELETE FROM message WHERE created_at <= datetime('now', '-" + os.Getenv("PERSISTENT_TTL_DAYS") + " days')"
 	sqlite.Execute(query)
+}
+
+func (sqlite *Sqlite) AddTask(params ...interface{}) {
+	//
+}
+
+func (sqlite *Sqlite) GetTasksForWorker() {
+	//
+}
+
+func (sqlite *Sqlite) DeleteTask(name string) {
+	//
 }
