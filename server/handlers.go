@@ -101,6 +101,24 @@ func (s *FiberServer) ConsumeHandler(c *fiber.Ctx) error {
 	return c.Status(200).JSON(messagePayload)
 }
 
+func (s *FiberServer) AddTaskHandler(c *fiber.Ctx) error {
+	c.Accepts("application/json")
+	addTask := new(AddTask)
+
+	if err := c.BodyParser(addTask); err != nil {
+		return c.Status(400).JSON(err.Error())
+	}
+
+	errors := ValidateStruct(*addTask)
+	if errors != nil {
+		return c.JSON(errors)
+	}
+
+	s.Db.InsertTask([]interface{}{addTask.Name, addTask.Channel, addTask.Message, addTask.Type, addTask.Time}...)
+
+	return c.SendStatus(200)
+}
+
 func ValidateStruct(s interface{}) []*ErrorResponse {
 	var errors []*ErrorResponse
 	validate := validator.New()

@@ -17,7 +17,6 @@ func (s *FiberServer) Serve() error {
 	s.App.Post("/broadcast", s.BroadcastHandler)
 
 	s.App.Post("/push", s.PushHandler)
-
 	s.App.Post("/pull", s.PullHandler)
 
 	s.App.Get("/ws", websocket.New(func(c *websocket.Conn) {
@@ -45,10 +44,10 @@ func (s *FiberServer) Serve() error {
 	}))
 
 	s.App.Post("/publish", s.PublishHandler)
-
-	//s.app.Post('/subscribe', SubscribeHandler)
-
 	s.App.Post("/consume", s.ConsumeHandler)
+
+	s.App.Post("/add-task", s.AddTaskHandler)
+	s.App.Post("/remove-task", s.ConsumeHandler)
 
 	return s.App.Listen(":" + s.Port)
 }

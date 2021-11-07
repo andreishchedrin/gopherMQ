@@ -32,7 +32,7 @@ type FiberServer struct {
 	Storage storage.AbstractStorage
 }
 
-type Task struct {
+type AddTask struct {
 	Name    string `json:"name" validate:"required"`
 	Channel string `json:"channel" validate:"required"`
 	Message string `json:"message" validate:"required"`

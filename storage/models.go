@@ -23,4 +23,5 @@ type Value struct {
 type QueueStorage struct {
 	Data   map[string]*queue.Queue
 	Logger logger.AbstractLogger
+	Debug  int
 }

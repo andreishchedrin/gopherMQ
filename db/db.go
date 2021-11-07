@@ -22,6 +22,7 @@ type AbstractDb interface {
 	StopCleaner()
 	StartScheduler(wg *sync.WaitGroup)
 	StopScheduler()
+	InsertTask(params ...interface{}) int64
 }
 
 func Connect(driverName string, dataSourceName string) *sql.DB {

@@ -18,7 +18,9 @@ func (qs *QueueStorage) Start(wg *sync.WaitGroup) {
 			case item := <-PushData:
 				q := qs.Set(item.Key)
 				q.Enqueue(item.Value)
-				qs.Logger.Log(fmt.Sprintf("Put to queue: %s - %s.", item.Key.Name, item.Value.Text))
+				if qs.Debug == 1 {
+					qs.Logger.Log(fmt.Sprintf("Put to queue: %s - %s.", item.Key.Name, item.Value.Text))
+				}
 			default:
 				time.Sleep(1 * time.Millisecond)
 			}
@@ -73,46 +75,3 @@ func (qs *QueueStorage) Pull(name string) (interface{}, error) {
 
 	return q.Dequeue(), nil
 }
-
-//func Test(wg *sync.WaitGroup) {
-//	wg.Add(1)
-//	go func() {
-//		defer wg.Done()
-//		for i := 0; i < 100; i++ {
-//			PushData <- Message{Key{"queue1"}, Value{"text" + strconv.Itoa(i), time.Now()}}
-//		}
-//	}()
-//
-//	wg.Add(1)
-//	go func() {
-//		defer wg.Done()
-//		for i := 0; i < 150; i++ {
-//			PushData <- Message{Key{"queue2"}, Value{"text" + strconv.Itoa(i), time.Now()}}
-//		}
-//	}()
-//
-//	wg.Add(1)
-//	go func() {
-//		defer wg.Done()
-//		for i := 0; i < 50; i++ {
-//			PushData <- Message{Key{"queue3"}, Value{"text" + strconv.Itoa(i), time.Now()}}
-//		}
-//	}()
-//}
-//
-//func Print(wg *sync.WaitGroup) {
-//	wg.Add(1)
-//	go func() {
-//		defer wg.Done()
-//		time.Sleep(5 * time.Second)
-//		q1, _ := Storage.Get(Key{"queue1"})
-//		fmt.Println("queue1: ")
-//		fmt.Println(q1.Len())
-//		q2, _ := Storage.Get(Key{"queue2"})
-//		fmt.Println("queue2: ")
-//		fmt.Println(q2.Len())
-//		q3, _ := Storage.Get(Key{"queue3"})
-//		fmt.Println("queue3: ")
-//		fmt.Println(q3.Len())
-//	}()
-//}

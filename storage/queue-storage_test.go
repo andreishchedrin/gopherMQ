@@ -3,6 +3,7 @@ package storage
 import (
 	"andreishchedrin/gopherMQ/logger"
 	"github.com/golang-collections/collections/queue"
+	"sync"
 	"testing"
 )
 
@@ -11,6 +12,7 @@ func TestQueueStorage(t *testing.T) {
 	storageInstance := QueueStorage{
 		Data:   make(map[string]*queue.Queue),
 		Logger: loggerInstance,
+		Debug:  0,
 	}
 
 	testChannel := "test_channel123"
@@ -45,5 +47,15 @@ func TestQueueStorage(t *testing.T) {
 
 	if q != nil {
 		t.Errorf("got %v, want %v", q, nil)
+	}
+
+	var wg sync.WaitGroup
+	storageInstance.Start(&wg)
+
+	storageInstance.Push(testChannel, testMessage)
+	message, _ = storageInstance.Pull(testChannel)
+
+	if message.(Value).Text != testMessage {
+		t.Errorf("got %v, want %v", message, testMessage)
 	}
 }

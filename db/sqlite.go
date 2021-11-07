@@ -9,10 +9,10 @@ import (
 
 type Sqlite struct {
 	ConnectInstance *sql.DB
-	Debug           int
 	Logger          logger.AbstractLogger
 	CleanerExit     chan bool
 	SchedulerExit   chan bool
+	Debug           int
 }
 
 func (sqlite *Sqlite) Close() {
@@ -146,8 +146,9 @@ func (sqlite *Sqlite) deleteOverdueMessages() {
 	sqlite.Execute(query)
 }
 
-func (sqlite *Sqlite) AddTask(params ...interface{}) {
-	//
+func (sqlite *Sqlite) InsertTask(params ...interface{}) int64 {
+	query := "INSERT INTO task (name, channel, message, type, time) VALUES (?, ?, ?, ?, ?)"
+	return sqlite.ExecuteWithParams(query, params...)
 }
 
 func (sqlite *Sqlite) GetTasksForWorker() {

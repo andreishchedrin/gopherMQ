@@ -21,7 +21,6 @@ func main() {
 	defer container.ServerInstance.Stop()
 
 	container.StorageInstance.Start(&wg)
-	//storage.Test(&wg)
-	//storage.Print(&wg)
+
 	wg.Wait()
 }
