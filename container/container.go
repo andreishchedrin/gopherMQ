@@ -3,6 +3,7 @@ package container
 import (
 	"andreishchedrin/gopherMQ/db"
 	"andreishchedrin/gopherMQ/logger"
+	"andreishchedrin/gopherMQ/repository"
 	"andreishchedrin/gopherMQ/server"
 	"andreishchedrin/gopherMQ/storage"
 	"github.com/gofiber/fiber/v2"
@@ -13,6 +14,7 @@ import (
 
 var LoggerInstance logger.AbstractLogger
 var DbInstance db.AbstractDb
+var RepoInstance repository.AbstractRepository
 var StorageInstance storage.AbstractStorage
 var ServerInstance server.AbstractServer
 
@@ -23,10 +25,10 @@ func init() {
 	DbInstance = &db.Sqlite{
 		ConnectInstance: db.Connect(os.Getenv("DB_DRIVER_NAME"), os.Getenv("DB_DATA_SOURCE_NAME")),
 		Logger:          LoggerInstance,
-		CleanerExit:     make(chan bool),
-		SchedulerExit:   make(chan bool),
 		Debug:           enableDbLog,
 	}
+
+	RepoInstance = &repository.SqliteRepository{SqliteDb: DbInstance, Logger: LoggerInstance}
 
 	enableStorageLog, _ := strconv.Atoi(os.Getenv("ENABLE_STORAGE_LOG"))
 	StorageInstance = &storage.QueueStorage{
@@ -39,7 +41,7 @@ func init() {
 		App:     fiber.New(),
 		Port:    os.Getenv("SERVER_PORT"),
 		Logger:  LoggerInstance,
-		Db:      DbInstance,
+		Repo:    RepoInstance,
 		Storage: StorageInstance,
 	}
 }

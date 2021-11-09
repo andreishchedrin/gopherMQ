@@ -1,8 +1,8 @@
 package server
 
 import (
-	"andreishchedrin/gopherMQ/db"
 	"andreishchedrin/gopherMQ/logger"
+	"andreishchedrin/gopherMQ/repository"
 	"andreishchedrin/gopherMQ/storage"
 	"github.com/gofiber/fiber/v2"
 )
@@ -28,7 +28,7 @@ type FiberServer struct {
 	App     *fiber.App
 	Port    string
 	Logger  logger.AbstractLogger
-	Db      db.AbstractDb
+	Repo    repository.AbstractRepository
 	Storage storage.AbstractStorage
 }
 

@@ -1,9 +1,12 @@
 package db
 
 import (
+	"os"
 	"sync"
 	"time"
 )
+
+var CleanerExit = make(chan bool)
 
 func (sqlite *Sqlite) StartCleaner(wg *sync.WaitGroup) {
 	wg.Add(1)
@@ -11,7 +14,7 @@ func (sqlite *Sqlite) StartCleaner(wg *sync.WaitGroup) {
 		defer wg.Done()
 		for {
 			select {
-			case <-sqlite.CleanerExit:
+			case <-CleanerExit:
 				return
 			default:
 				sqlite.deleteOverdueMessages()
@@ -22,5 +25,10 @@ func (sqlite *Sqlite) StartCleaner(wg *sync.WaitGroup) {
 }
 
 func (sqlite *Sqlite) StopCleaner() {
-	sqlite.CleanerExit <- true
+	CleanerExit <- true
+}
+
+func (sqlite *Sqlite) deleteOverdueMessages() {
+	query := "DELETE FROM message WHERE created_at <= datetime('now', '-" + os.Getenv("PERSISTENT_TTL_DAYS") + " days')"
+	sqlite.Execute(query)
 }

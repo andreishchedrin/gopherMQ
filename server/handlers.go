@@ -74,7 +74,7 @@ func (s *FiberServer) PublishHandler(c *fiber.Ctx) error {
 		return c.JSON(errors)
 	}
 
-	s.Db.InsertMessage([]interface{}{pusher.Channel, pusher.Message}...)
+	s.Repo.InsertMessage([]interface{}{pusher.Channel, pusher.Message}...)
 
 	return c.SendStatus(200)
 }
@@ -92,11 +92,11 @@ func (s *FiberServer) ConsumeHandler(c *fiber.Ctx) error {
 		return c.JSON(errors)
 	}
 
-	clientId := s.Db.InsertClient([]interface{}{c.IP(), puller.Channel}...)
+	clientId := s.Repo.InsertClient([]interface{}{c.IP(), puller.Channel}...)
 
-	messageId, messagePayload := s.Db.SelectMessage([]interface{}{puller.Channel, clientId}...)
+	messageId, messagePayload := s.Repo.SelectMessage([]interface{}{puller.Channel, clientId}...)
 
-	s.Db.InsertClientMessage([]interface{}{clientId, messageId}...)
+	s.Repo.InsertClientMessage([]interface{}{clientId, messageId}...)
 
 	return c.Status(200).JSON(messagePayload)
 }
@@ -114,7 +114,7 @@ func (s *FiberServer) AddTaskHandler(c *fiber.Ctx) error {
 		return c.JSON(errors)
 	}
 
-	s.Db.InsertTask([]interface{}{addTask.Name, addTask.Channel, addTask.Message, addTask.Type, addTask.Time}...)
+	s.Repo.InsertTask([]interface{}{addTask.Name, addTask.Channel, addTask.Message, addTask.Type, addTask.Time}...)
 
 	return c.SendStatus(200)
 }

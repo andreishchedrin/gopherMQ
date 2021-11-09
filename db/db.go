@@ -14,15 +14,9 @@ type AbstractDb interface {
 	QueryRow(query string, params ...interface{}) *sql.Row
 	QueryRows(query string, params ...interface{}) (*sql.Rows, error)
 	Close()
-	InsertMessage(params ...interface{}) int64
-	SelectMessage(params ...interface{}) (int64, string)
-	InsertClient(params ...interface{}) int64
-	InsertClientMessage(params ...interface{})
 	StartCleaner(wg *sync.WaitGroup)
 	StopCleaner()
-	StartScheduler(wg *sync.WaitGroup)
-	StopScheduler()
-	InsertTask(params ...interface{}) int64
+	GetConnectInstance() *sql.DB
 }
 
 func Connect(driverName string, dataSourceName string) *sql.DB {
