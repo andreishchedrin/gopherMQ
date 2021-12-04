@@ -7,53 +7,53 @@ import (
 
 func (s *FiberServer) BroadcastHandler(c *fiber.Ctx) error {
 	c.Accepts("application/json")
-	pusher := new(Pusher)
+	push := new(Push)
 
-	if err := c.BodyParser(pusher); err != nil {
+	if err := c.BodyParser(push); err != nil {
 		return c.Status(400).JSON(err.Error())
 	}
 
-	errors := ValidateStruct(*pusher)
+	errors := ValidateStruct(*push)
 	if errors != nil {
 		return c.JSON(errors)
 	}
 
-	broadcastMessage <- pusher
+	broadcastMessage <- push
 
 	return c.SendStatus(200)
 }
 
 func (s *FiberServer) PushHandler(c *fiber.Ctx) error {
 	c.Accepts("application/json")
-	pusher := new(Pusher)
+	push := new(Push)
 
-	if err := c.BodyParser(pusher); err != nil {
+	if err := c.BodyParser(push); err != nil {
 		return c.Status(400).JSON(err.Error())
 	}
 
-	errors := ValidateStruct(*pusher)
+	errors := ValidateStruct(*push)
 	if errors != nil {
 		return c.JSON(errors)
 	}
 
-	s.Storage.Push(pusher.Channel, pusher.Message)
+	s.MessageService.Push(push.Channel, push.Message)
 	return c.SendStatus(200)
 }
 
 func (s *FiberServer) PullHandler(c *fiber.Ctx) error {
 	c.Accepts("application/json")
-	puller := new(Puller)
+	pull := new(Pull)
 
-	if err := c.BodyParser(puller); err != nil {
+	if err := c.BodyParser(pull); err != nil {
 		return c.Status(400).JSON(err.Error())
 	}
 
-	errors := ValidateStruct(*puller)
+	errors := ValidateStruct(*pull)
 	if errors != nil {
 		return c.JSON(errors)
 	}
 
-	message, err := s.Storage.Pull(puller.Channel)
+	message, err := s.MessageService.Pull(pull.Channel)
 	if err != nil {
 		return c.JSON(err.Error())
 	}
@@ -63,38 +63,38 @@ func (s *FiberServer) PullHandler(c *fiber.Ctx) error {
 
 func (s *FiberServer) PublishHandler(c *fiber.Ctx) error {
 	c.Accepts("application/json")
-	pusher := new(Pusher)
+	push := new(Push)
 
-	if err := c.BodyParser(pusher); err != nil {
+	if err := c.BodyParser(push); err != nil {
 		return c.Status(400).JSON(err.Error())
 	}
 
-	errors := ValidateStruct(*pusher)
+	errors := ValidateStruct(*push)
 	if errors != nil {
 		return c.JSON(errors)
 	}
 
-	s.Repo.InsertMessage([]interface{}{pusher.Channel, pusher.Message}...)
+	s.Repo.InsertMessage([]interface{}{push.Channel, push.Message}...)
 
 	return c.SendStatus(200)
 }
 
 func (s *FiberServer) ConsumeHandler(c *fiber.Ctx) error {
 	c.Accepts("application/json")
-	puller := new(Puller)
+	pull := new(Pull)
 
-	if err := c.BodyParser(puller); err != nil {
+	if err := c.BodyParser(pull); err != nil {
 		return c.Status(400).JSON(err.Error())
 	}
 
-	errors := ValidateStruct(*puller)
+	errors := ValidateStruct(*pull)
 	if errors != nil {
 		return c.JSON(errors)
 	}
 
-	clientId := s.Repo.InsertClient([]interface{}{c.IP(), puller.Channel}...)
+	clientId := s.Repo.InsertClient([]interface{}{c.IP(), pull.Channel}...)
 
-	messageId, messagePayload := s.Repo.SelectMessage([]interface{}{puller.Channel, clientId}...)
+	messageId, messagePayload := s.Repo.SelectMessage([]interface{}{pull.Channel, clientId}...)
 
 	s.Repo.InsertClientMessage([]interface{}{clientId, messageId}...)
 

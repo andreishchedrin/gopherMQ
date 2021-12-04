@@ -3,16 +3,17 @@ package server
 import (
 	"andreishchedrin/gopherMQ/logger"
 	"andreishchedrin/gopherMQ/repository"
+	"andreishchedrin/gopherMQ/service"
 	"andreishchedrin/gopherMQ/storage"
 	"github.com/gofiber/fiber/v2"
 )
 
-type Pusher struct {
+type Push struct {
 	Channel string `json:"channel" validate:"required"`
 	Message string `json:"message" validate:"required"`
 }
 
-type Puller struct {
+type Pull struct {
 	Channel string `json:"channel" validate:"required"`
 }
 
@@ -25,11 +26,12 @@ type ErrorResponse struct {
 type Client struct{}
 
 type FiberServer struct {
-	App     *fiber.App
-	Port    string
-	Logger  logger.AbstractLogger
-	Repo    repository.AbstractRepository
-	Storage storage.AbstractStorage
+	App            *fiber.App
+	Port           string
+	Logger         logger.AbstractLogger
+	Repo           repository.AbstractRepository
+	Storage        storage.AbstractStorage
+	MessageService service.AbstractMessageService
 }
 
 type AddTask struct {

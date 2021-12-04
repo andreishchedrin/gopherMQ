@@ -65,11 +65,8 @@ func (s *FiberServer) Start(wg *sync.WaitGroup) {
 			s.Logger.Log(err)
 		}
 	}()
-
-	s.StartScheduler(wg)
 }
 
 func (s *FiberServer) Stop() error {
-
 	return s.Shutdown()
 }

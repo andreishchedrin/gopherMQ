@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	_ "github.com/mattn/go-sqlite3"
 	"log"
-	"sync"
 )
 
 type AbstractDb interface {
@@ -14,8 +13,6 @@ type AbstractDb interface {
 	QueryRow(query string, params ...interface{}) *sql.Row
 	QueryRows(query string, params ...interface{}) (*sql.Rows, error)
 	Close()
-	StartCleaner(wg *sync.WaitGroup)
-	StopCleaner()
 	GetConnectInstance() *sql.DB
 }
 

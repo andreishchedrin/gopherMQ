@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package api;
+
+option go_package = "/";
+
+message PushStruct {
+  string channel = 1;
+  string message = 2;
+}
+
+message PullStruct {
+  string channel = 1;
+}
+
+message Response {
+  int32 code = 1;
+}
+
+service Pusher {
+  rpc Push(PushStruct) returns (Response) {}
+}
+
+service Puller {
+  rpc Pull(PullStruct) returns (Response) {}
+}
+

@@ -18,6 +18,7 @@ type AbstractRepository interface {
 	InsertClient(params ...interface{}) int64
 	InsertClientMessage(params ...interface{})
 	InsertTask(params ...interface{}) int64
+	DeleteOverdueMessages(period string)
 	DeleteTask(params ...interface{})
 	GetTasksForWorker() []Task
 }
@@ -83,6 +84,11 @@ func (repo *SqliteRepository) InsertClientMessage(params ...interface{}) {
 func (repo *SqliteRepository) InsertTask(params ...interface{}) int64 {
 	query := "INSERT INTO task (name, channel, message, type, time) VALUES (?, ?, ?, ?, ?)"
 	return repo.SqliteDb.ExecuteWithParams(query, params...)
+}
+
+func (repo *SqliteRepository) DeleteOverdueMessages(period string) {
+	query := "DELETE FROM message WHERE created_at <= datetime('now', '-" + period + " days')"
+	repo.SqliteDb.Execute(query)
 }
 
 func (repo *SqliteRepository) DeleteTask(params ...interface{}) {
