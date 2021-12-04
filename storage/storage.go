@@ -12,5 +12,5 @@ type AbstractStorage interface {
 	Flush()
 	Start(wg *sync.WaitGroup)
 	Push(name string, message string)
-	Pull(name string) (interface{}, error)
+	Pull(name string) (string, error)
 }

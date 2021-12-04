@@ -67,11 +67,17 @@ func (qs *QueueStorage) Push(name string, message string) {
 	PushData <- Message{Key{name}, Value{message, time.Now()}}
 }
 
-func (qs *QueueStorage) Pull(name string) (interface{}, error) {
+func (qs *QueueStorage) Pull(name string) (string, error) {
 	q, err := qs.Get(Key{name})
 	if err != nil {
-		return nil, err
+		return err.Error(), err
 	}
 
-	return q.Dequeue(), nil
+	res := q.Dequeue()
+
+	if res == nil {
+		return "Queue is empty.", nil
+	}
+
+	return res.(Value).Text, nil
 }

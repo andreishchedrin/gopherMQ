@@ -53,12 +53,20 @@ func init() {
 
 	serverMode := os.Getenv("MODE")
 
-	ServerInstance = &server.FiberServer{
-		App:            fiber.New(),
-		Port:           os.Getenv("SERVER_PORT"),
-		Logger:         LoggerInstance,
-		Repo:           RepoInstance,
-		Storage:        StorageInstance,
-		MessageService: MessageService,
+	if serverMode == "grpc" {
+		ServerInstance = &server.Grpc{
+			Port:           os.Getenv("SERVER_PORT"),
+			Logger:         LoggerInstance,
+			MessageService: MessageService,
+		}
+	} else {
+		ServerInstance = &server.FiberServer{
+			App:            fiber.New(),
+			Port:           os.Getenv("SERVER_PORT"),
+			Logger:         LoggerInstance,
+			Repo:           RepoInstance,
+			Storage:        StorageInstance,
+			MessageService: MessageService,
+		}
 	}
 }

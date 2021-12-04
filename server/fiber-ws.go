@@ -13,7 +13,7 @@ var register = make(chan *websocket.Conn)
 var ws = make(chan *websocket.Conn)
 var unregister = make(chan *websocket.Conn)
 var messageErrors = make(chan error)
-var broadcastMessage = make(chan *Pusher)
+var broadcastMessage = make(chan *Push)
 
 func (s *FiberServer) WebsocketListen() {
 	debug, _ := strconv.Atoi(os.Getenv("ENABLE_WS_LOG"))

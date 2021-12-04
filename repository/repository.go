@@ -97,7 +97,7 @@ func (repo *SqliteRepository) DeleteTask(params ...interface{}) {
 }
 
 func (repo *SqliteRepository) GetTasksForWorker() []Task {
-	query := "SELECT * type FROM task WHERE time <= time('now')"
+	query := "SELECT * FROM task WHERE time <= time('now')"
 	sqlite := repo.SqliteDb.GetConnectInstance()
 
 	rows, err := sqlite.Query(query)
