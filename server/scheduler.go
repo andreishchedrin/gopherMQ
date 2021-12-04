@@ -48,7 +48,7 @@ func (s *FiberServer) ProcessTasks(tasks []repository.Task) {
 		}
 
 		if task.Repeatable == 0 {
-			//@TODO
+			s.Repo.DeleteTask([]interface{}{task.Name}...)
 		}
 	}
 }

@@ -9,7 +9,7 @@ import (
 
 func TestLogger(t *testing.T) {
 	var wg sync.WaitGroup
-	file := "../logs/test123.log"
+	file := "../test123.log"
 	loggerInstance := &Logger{File: file}
 
 	for i := 0; i < 5; i++ {

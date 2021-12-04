@@ -39,3 +39,7 @@ type AddTask struct {
 	Type    string `json:"type" validate:"required,oneof=broadcast queue persist"`
 	Time    string `json:"time" validate:"required"`
 }
+
+type DeleteTask struct {
+	Name string `json:"name" validate:"required"`
+}

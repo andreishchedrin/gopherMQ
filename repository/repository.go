@@ -18,7 +18,7 @@ type AbstractRepository interface {
 	InsertClient(params ...interface{}) int64
 	InsertClientMessage(params ...interface{})
 	InsertTask(params ...interface{}) int64
-	DeleteTask(id int64)
+	DeleteTask(params ...interface{})
 	GetTasksForWorker() []Task
 }
 
@@ -85,8 +85,9 @@ func (repo *SqliteRepository) InsertTask(params ...interface{}) int64 {
 	return repo.SqliteDb.ExecuteWithParams(query, params...)
 }
 
-func (repo *SqliteRepository) DeleteTask(id int64) {
-	//@TODO
+func (repo *SqliteRepository) DeleteTask(params ...interface{}) {
+	query := "DELETE FROM task WHERE name = ?"
+	repo.SqliteDb.ExecuteWithParams(query, params...)
 }
 
 func (repo *SqliteRepository) GetTasksForWorker() []Task {

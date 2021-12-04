@@ -119,6 +119,24 @@ func (s *FiberServer) AddTaskHandler(c *fiber.Ctx) error {
 	return c.SendStatus(200)
 }
 
+func (s *FiberServer) DeleteTaskHandler(c *fiber.Ctx) error {
+	c.Accepts("application/json")
+	deleteTask := new(DeleteTask)
+
+	if err := c.BodyParser(deleteTask); err != nil {
+		return c.Status(400).JSON(err.Error())
+	}
+
+	errors := ValidateStruct(*deleteTask)
+	if errors != nil {
+		return c.JSON(errors)
+	}
+
+	s.Repo.DeleteTask([]interface{}{deleteTask.Name}...)
+
+	return c.SendStatus(200)
+}
+
 func ValidateStruct(s interface{}) []*ErrorResponse {
 	var errors []*ErrorResponse
 	validate := validator.New()
