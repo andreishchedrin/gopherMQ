@@ -24,7 +24,7 @@ func (g *Grpc) Serve() error {
 	}
 
 	pusherServer := message.NewPusherServer{MessageService: g.MessageService}
-	pullerServer := message.NewPullerServer{MessageService: g.MessageService, Logger: g.Logger}
+	pullerServer := message.NewPullerServer{MessageService: g.MessageService}
 
 	grpcServer := grpc.NewServer()
 	message.RegisterPusherServer(grpcServer, &pusherServer)

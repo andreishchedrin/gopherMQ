@@ -1,14 +1,12 @@
 package message
 
 import (
-	"andreishchedrin/gopherMQ/logger"
 	"andreishchedrin/gopherMQ/service"
 	"context"
 )
 
 type NewPullerServer struct {
 	MessageService service.AbstractMessageService
-	Logger         logger.AbstractLogger
 }
 
 func (n *NewPullerServer) Pull(ctx context.Context, req *PullStruct) (*PullResponse, error) {
@@ -19,7 +17,6 @@ func (n *NewPullerServer) Pull(ctx context.Context, req *PullStruct) (*PullRespo
 
 	res := &PullResponse{Code: 200, Payload: message}
 
-	n.Logger.Log(res)
 	return res, nil
 }
 
