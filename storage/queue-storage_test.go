@@ -55,7 +55,7 @@ func TestQueueStorage(t *testing.T) {
 	storageInstance.Push(testChannel, testMessage)
 	message, _ = storageInstance.Pull(testChannel)
 
-	if message.(Value).Text != testMessage {
+	if message != testMessage {
 		t.Errorf("got %v, want %v", message, testMessage)
 	}
 }
