@@ -13,7 +13,7 @@ var register = make(chan *websocket.Conn)
 var ws = make(chan *websocket.Conn)
 var unregister = make(chan *websocket.Conn)
 var messageErrors = make(chan error)
-var broadcastMessage = make(chan *Push)
+var BroadcastMessage = make(chan *Push)
 
 func (s *FiberServer) WebsocketListen() {
 	debug, _ := strconv.Atoi(os.Getenv("ENABLE_WS_LOG"))
@@ -50,7 +50,7 @@ func (s *FiberServer) WebsocketListen() {
 				}
 			}
 
-		case message := <-broadcastMessage:
+		case message := <-BroadcastMessage:
 			for connection := range channels[message.Channel] {
 				if err := connection.WriteMessage(websocket.TextMessage, []byte(message.Message)); err != nil {
 					s.Logger.Log(fmt.Sprintf("write error: %v", err))

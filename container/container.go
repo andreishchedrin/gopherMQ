@@ -39,9 +39,6 @@ func init() {
 	period := os.Getenv("PERSISTENT_TTL_DAYS")
 	CleanerInstance = &cleaner.Cleaner{Repo: RepoInstance, Period: period}
 
-	timeout, _ := strconv.Atoi(os.Getenv("SCHEDULER_TIMEOUT"))
-	SchedulerInstance = &scheduler.Scheduler{Repo: RepoInstance, Timeout: timeout}
-
 	enableStorageLog, _ := strconv.Atoi(os.Getenv("ENABLE_STORAGE_LOG"))
 	StorageInstance = &storage.QueueStorage{
 		Data:   make(map[string]*queue.Queue),
@@ -68,5 +65,13 @@ func init() {
 			Storage:        StorageInstance,
 			MessageService: MessageService,
 		}
+	}
+
+	timeout, _ := strconv.Atoi(os.Getenv("SCHEDULER_TIMEOUT"))
+	SchedulerInstance = &scheduler.Scheduler{
+		Repo:       RepoInstance,
+		Storage:    StorageInstance,
+		Timeout:    timeout,
+		ServerMode: serverMode,
 	}
 }
