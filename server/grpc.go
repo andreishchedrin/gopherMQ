@@ -2,6 +2,7 @@ package server
 
 import (
 	"andreishchedrin/gopherMQ/logger"
+	"andreishchedrin/gopherMQ/repository"
 	"andreishchedrin/gopherMQ/server/message"
 	"andreishchedrin/gopherMQ/service"
 	"errors"
@@ -15,6 +16,7 @@ type Grpc struct {
 	Port           string
 	Logger         logger.AbstractLogger
 	MessageService service.AbstractMessageService
+	Repo           repository.AbstractRepository
 }
 
 func (g *Grpc) Serve() error {
@@ -23,8 +25,8 @@ func (g *Grpc) Serve() error {
 		log.Fatal(err)
 	}
 
-	pusherServer := message.NewPusherServer{MessageService: g.MessageService}
-	pullerServer := message.NewPullerServer{MessageService: g.MessageService}
+	pusherServer := message.NewPusherServer{MessageService: g.MessageService, Repo: g.Repo}
+	pullerServer := message.NewPullerServer{MessageService: g.MessageService, Repo: g.Repo}
 
 	grpcServer := grpc.NewServer()
 	message.RegisterPusherServer(grpcServer, &pusherServer)

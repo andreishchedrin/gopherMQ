@@ -19,6 +19,8 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type PusherClient interface {
 	Push(ctx context.Context, in *PushStruct, opts ...grpc.CallOption) (*PushResponse, error)
+	Publish(ctx context.Context, in *PushStruct, opts ...grpc.CallOption) (*PushResponse, error)
+	Broadcast(ctx context.Context, opts ...grpc.CallOption) (Pusher_BroadcastClient, error)
 }
 
 type pusherClient struct {
@@ -38,11 +40,56 @@ func (c *pusherClient) Push(ctx context.Context, in *PushStruct, opts ...grpc.Ca
 	return out, nil
 }
 
+func (c *pusherClient) Publish(ctx context.Context, in *PushStruct, opts ...grpc.CallOption) (*PushResponse, error) {
+	out := new(PushResponse)
+	err := c.cc.Invoke(ctx, "/message.Pusher/Publish", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *pusherClient) Broadcast(ctx context.Context, opts ...grpc.CallOption) (Pusher_BroadcastClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Pusher_ServiceDesc.Streams[0], "/message.Pusher/Broadcast", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &pusherBroadcastClient{stream}
+	return x, nil
+}
+
+type Pusher_BroadcastClient interface {
+	Send(*PushStruct) error
+	CloseAndRecv() (*PushResponse, error)
+	grpc.ClientStream
+}
+
+type pusherBroadcastClient struct {
+	grpc.ClientStream
+}
+
+func (x *pusherBroadcastClient) Send(m *PushStruct) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *pusherBroadcastClient) CloseAndRecv() (*PushResponse, error) {
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	m := new(PushResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // PusherServer is the server API for Pusher service.
 // All implementations must embed UnimplementedPusherServer
 // for forward compatibility
 type PusherServer interface {
 	Push(context.Context, *PushStruct) (*PushResponse, error)
+	Publish(context.Context, *PushStruct) (*PushResponse, error)
+	Broadcast(Pusher_BroadcastServer) error
 	mustEmbedUnimplementedPusherServer()
 }
 
@@ -52,6 +99,12 @@ type UnimplementedPusherServer struct {
 
 func (UnimplementedPusherServer) Push(context.Context, *PushStruct) (*PushResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Push not implemented")
+}
+func (UnimplementedPusherServer) Publish(context.Context, *PushStruct) (*PushResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Publish not implemented")
+}
+func (UnimplementedPusherServer) Broadcast(Pusher_BroadcastServer) error {
+	return status.Errorf(codes.Unimplemented, "method Broadcast not implemented")
 }
 func (UnimplementedPusherServer) mustEmbedUnimplementedPusherServer() {}
 
@@ -84,6 +137,50 @@ func _Pusher_Push_Handler(srv interface{}, ctx context.Context, dec func(interfa
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Pusher_Publish_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PushStruct)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PusherServer).Publish(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/message.Pusher/Publish",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PusherServer).Publish(ctx, req.(*PushStruct))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Pusher_Broadcast_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(PusherServer).Broadcast(&pusherBroadcastServer{stream})
+}
+
+type Pusher_BroadcastServer interface {
+	SendAndClose(*PushResponse) error
+	Recv() (*PushStruct, error)
+	grpc.ServerStream
+}
+
+type pusherBroadcastServer struct {
+	grpc.ServerStream
+}
+
+func (x *pusherBroadcastServer) SendAndClose(m *PushResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *pusherBroadcastServer) Recv() (*PushStruct, error) {
+	m := new(PushStruct)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // Pusher_ServiceDesc is the grpc.ServiceDesc for Pusher service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -95,8 +192,18 @@ var Pusher_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "Push",
 			Handler:    _Pusher_Push_Handler,
 		},
+		{
+			MethodName: "Publish",
+			Handler:    _Pusher_Publish_Handler,
+		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "Broadcast",
+			Handler:       _Pusher_Broadcast_Handler,
+			ClientStreams: true,
+		},
+	},
 	Metadata: "message.proto",
 }
 
@@ -105,6 +212,8 @@ var Pusher_ServiceDesc = grpc.ServiceDesc{
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type PullerClient interface {
 	Pull(ctx context.Context, in *PullStruct, opts ...grpc.CallOption) (*PullResponse, error)
+	Consume(ctx context.Context, in *PullStruct, opts ...grpc.CallOption) (*PullResponse, error)
+	Ws(ctx context.Context, in *PullStruct, opts ...grpc.CallOption) (Puller_WsClient, error)
 }
 
 type pullerClient struct {
@@ -124,11 +233,54 @@ func (c *pullerClient) Pull(ctx context.Context, in *PullStruct, opts ...grpc.Ca
 	return out, nil
 }
 
+func (c *pullerClient) Consume(ctx context.Context, in *PullStruct, opts ...grpc.CallOption) (*PullResponse, error) {
+	out := new(PullResponse)
+	err := c.cc.Invoke(ctx, "/message.Puller/Consume", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *pullerClient) Ws(ctx context.Context, in *PullStruct, opts ...grpc.CallOption) (Puller_WsClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Puller_ServiceDesc.Streams[0], "/message.Puller/Ws", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &pullerWsClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Puller_WsClient interface {
+	Recv() (*PullResponse, error)
+	grpc.ClientStream
+}
+
+type pullerWsClient struct {
+	grpc.ClientStream
+}
+
+func (x *pullerWsClient) Recv() (*PullResponse, error) {
+	m := new(PullResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // PullerServer is the server API for Puller service.
 // All implementations must embed UnimplementedPullerServer
 // for forward compatibility
 type PullerServer interface {
 	Pull(context.Context, *PullStruct) (*PullResponse, error)
+	Consume(context.Context, *PullStruct) (*PullResponse, error)
+	Ws(*PullStruct, Puller_WsServer) error
 	mustEmbedUnimplementedPullerServer()
 }
 
@@ -138,6 +290,12 @@ type UnimplementedPullerServer struct {
 
 func (UnimplementedPullerServer) Pull(context.Context, *PullStruct) (*PullResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Pull not implemented")
+}
+func (UnimplementedPullerServer) Consume(context.Context, *PullStruct) (*PullResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Consume not implemented")
+}
+func (UnimplementedPullerServer) Ws(*PullStruct, Puller_WsServer) error {
+	return status.Errorf(codes.Unimplemented, "method Ws not implemented")
 }
 func (UnimplementedPullerServer) mustEmbedUnimplementedPullerServer() {}
 
@@ -170,6 +328,45 @@ func _Puller_Pull_Handler(srv interface{}, ctx context.Context, dec func(interfa
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Puller_Consume_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PullStruct)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PullerServer).Consume(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/message.Puller/Consume",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PullerServer).Consume(ctx, req.(*PullStruct))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Puller_Ws_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(PullStruct)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(PullerServer).Ws(m, &pullerWsServer{stream})
+}
+
+type Puller_WsServer interface {
+	Send(*PullResponse) error
+	grpc.ServerStream
+}
+
+type pullerWsServer struct {
+	grpc.ServerStream
+}
+
+func (x *pullerWsServer) Send(m *PullResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 // Puller_ServiceDesc is the grpc.ServiceDesc for Puller service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -181,7 +378,17 @@ var Puller_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "Pull",
 			Handler:    _Puller_Pull_Handler,
 		},
+		{
+			MethodName: "Consume",
+			Handler:    _Puller_Consume_Handler,
+		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "Ws",
+			Handler:       _Puller_Ws_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "message.proto",
 }

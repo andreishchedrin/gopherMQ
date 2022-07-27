@@ -24,9 +24,13 @@ message PullResponse {
 
 service Pusher {
   rpc Push(PushStruct) returns (PushResponse) {}
+  rpc Publish(PushStruct) returns (PushResponse) {}
+  rpc Broadcast(stream PushStruct) returns (PushResponse) {}
 }
 
 service Puller {
   rpc Pull(PullStruct) returns (PullResponse) {}
+  rpc Consume(PullStruct) returns (PullResponse) {}
+  rpc Ws(PullStruct) returns (stream PullResponse) {}
 }
 

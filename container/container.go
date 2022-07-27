@@ -55,6 +55,7 @@ func init() {
 			Port:           os.Getenv("SERVER_PORT"),
 			Logger:         LoggerInstance,
 			MessageService: MessageService,
+			Repo:           RepoInstance,
 		}
 	} else {
 		ServerInstance = &server.FiberServer{

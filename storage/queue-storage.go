@@ -73,6 +73,10 @@ func (qs *QueueStorage) Pull(name string) (string, error) {
 		return err.Error(), err
 	}
 
+	if q == nil {
+		return "Queue is not exists.", nil
+	}
+
 	res := q.Dequeue()
 
 	if res == nil {
