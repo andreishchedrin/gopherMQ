@@ -40,9 +40,8 @@ func (qs *QueueStorage) Set(key Key) *queue.Queue {
 }
 
 func (qs *QueueStorage) Get(key Key) (*queue.Queue, error) {
-	_, ok := qs.Data[key.Name]
+	q, ok := qs.Data[key.Name]
 	if ok {
-		q := qs.Data[key.Name]
 		return q, nil
 	}
 	return nil, fmt.Errorf("queue not found")
@@ -77,11 +76,11 @@ func (qs *QueueStorage) Pull(name string) (string, error) {
 		return "Queue is not exists.", nil
 	}
 
-	res := q.Dequeue()
-
-	if res == nil {
+	if q.Len() == 0 {
 		return "Queue is empty.", nil
 	}
+
+	res := q.Dequeue()
 
 	return res.(Value).Text, nil
 }
