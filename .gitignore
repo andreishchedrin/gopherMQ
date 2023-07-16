@@ -4,3 +4,4 @@
 **.log
 persistent.db
 *.exe
+/vendor

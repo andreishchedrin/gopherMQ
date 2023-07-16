@@ -16,7 +16,10 @@ var messageErrors = make(chan error)
 var BroadcastMessage = make(chan *Push)
 
 func (s *FiberServer) WebsocketListen() {
-	debug, _ := strconv.Atoi(os.Getenv("ENABLE_WS_LOG"))
+	debug, err := strconv.Atoi(os.Getenv("ENABLE_WS_LOG"))
+	if err != nil {
+		panic("can't parse params")
+	}
 
 	for {
 		select {

@@ -13,66 +13,116 @@ import (
 	"github.com/golang-collections/collections/queue"
 	"os"
 	"strconv"
+	"sync"
 )
 
-var LoggerInstance logger.AbstractLogger
-var DbInstance db.AbstractDb
-var RepoInstance repository.AbstractRepository
-var CleanerInstance cleaner.AbstractCleaner
-var SchedulerInstance scheduler.AbstractScheduler
-var StorageInstance storage.AbstractStorage
-var MessageService service.AbstractMessageService
-var ServerInstance server.AbstractServer
+type App struct {
+	Logger         logger.AbstractLogger
+	Db             db.AbstractDb
+	Repo           repository.AbstractRepository
+	Cleaner        cleaner.AbstractCleaner
+	Scheduler      scheduler.AbstractScheduler
+	Storage        storage.AbstractStorage
+	MessageService service.AbstractMessageService
+	//TODO separate this interface
+	HttpServer *server.FiberServer
+	GrpcServer *server.Grpc
+}
 
-func init() {
-	LoggerInstance = &logger.Logger{File: os.Getenv("LOG_FILE")}
+func NewApp() *App {
+	loggerInstance := &logger.Logger{File: os.Getenv("LOG_FILE")}
 
-	enableDbLog, _ := strconv.Atoi(os.Getenv("ENABLE_DB_LOG"))
-	DbInstance = &db.Sqlite{
+	enableDbLog, err := strconv.Atoi(os.Getenv("ENABLE_DB_LOG"))
+	if err != nil {
+		panic("can't parse params")
+	}
+
+	dbInstance := &db.Sqlite{
 		ConnectInstance: db.Connect(os.Getenv("DB_DRIVER_NAME"), os.Getenv("DB_DATA_SOURCE_NAME")),
-		Logger:          LoggerInstance,
+		Logger:          loggerInstance,
 		Debug:           enableDbLog,
 	}
 
-	RepoInstance = &repository.SqliteRepository{SqliteDb: DbInstance, Logger: LoggerInstance}
+	repoInstance := &repository.SqliteRepository{SqliteDb: dbInstance, Logger: loggerInstance}
 
 	period := os.Getenv("PERSISTENT_TTL_DAYS")
-	CleanerInstance = &cleaner.Cleaner{Repo: RepoInstance, Period: period}
+	cleanerInstance := &cleaner.Cleaner{Repo: repoInstance, Period: period}
 
-	enableStorageLog, _ := strconv.Atoi(os.Getenv("ENABLE_STORAGE_LOG"))
-	StorageInstance = &storage.QueueStorage{
+	enableStorageLog, err := strconv.Atoi(os.Getenv("ENABLE_STORAGE_LOG"))
+	if err != nil {
+		panic("can't parse params")
+	}
+
+	storageInstance := &storage.QueueStorage{
 		Data:   make(map[string]*queue.Queue),
-		Logger: LoggerInstance,
+		Logger: loggerInstance,
 		Debug:  enableStorageLog,
 	}
 
-	MessageService = &service.MessageService{Storage: StorageInstance}
+	messageService := &service.MessageService{Storage: storageInstance}
 
-	serverMode := os.Getenv("MODE")
-
-	if serverMode == "grpc" {
-		ServerInstance = &server.Grpc{
-			Port:           os.Getenv("SERVER_PORT"),
-			Logger:         LoggerInstance,
-			MessageService: MessageService,
-			Repo:           RepoInstance,
-		}
-	} else {
-		ServerInstance = &server.FiberServer{
-			App:            fiber.New(),
-			Port:           os.Getenv("SERVER_PORT"),
-			Logger:         LoggerInstance,
-			Repo:           RepoInstance,
-			Storage:        StorageInstance,
-			MessageService: MessageService,
-		}
+	grpcServer := &server.Grpc{
+		Port:           os.Getenv("GRPC_PORT"),
+		Logger:         loggerInstance,
+		MessageService: messageService,
+		Repo:           repoInstance,
 	}
 
-	timeout, _ := strconv.Atoi(os.Getenv("SCHEDULER_TIMEOUT"))
-	SchedulerInstance = &scheduler.Scheduler{
-		Repo:       RepoInstance,
-		Storage:    StorageInstance,
-		Timeout:    timeout,
-		ServerMode: serverMode,
+	httpServer := &server.FiberServer{
+		App:            fiber.New(),
+		Port:           os.Getenv("HTTP_PORT"),
+		Logger:         loggerInstance,
+		Repo:           repoInstance,
+		Storage:        storageInstance,
+		MessageService: messageService,
 	}
+
+	timeout, err := strconv.Atoi(os.Getenv("SCHEDULER_TIMEOUT"))
+	if err != nil {
+		panic("can't parse params")
+	}
+
+	schedulerInstance := &scheduler.Scheduler{
+		Repo:    repoInstance,
+		Storage: storageInstance,
+		Timeout: timeout,
+		//TODO remove it
+		ServerMode: "",
+	}
+
+	return &App{
+		Logger:         loggerInstance,
+		Db:             dbInstance,
+		Repo:           repoInstance,
+		Cleaner:        cleanerInstance,
+		Scheduler:      schedulerInstance,
+		Storage:        storageInstance,
+		MessageService: messageService,
+		GrpcServer:     grpcServer,
+		HttpServer:     httpServer,
+	}
+}
+
+func (a *App) Start() {
+	var wg sync.WaitGroup
+
+	a.Db.Prepare()
+	defer a.Db.Close()
+
+	a.Cleaner.StartCleaner(&wg)
+	defer a.Cleaner.StopCleaner()
+
+	a.Storage.Start(&wg)
+
+	a.HttpServer.Start(&wg)
+	go a.HttpServer.WebsocketListen()
+	defer a.HttpServer.Stop()
+
+	a.GrpcServer.Start(&wg)
+	defer a.GrpcServer.Stop()
+
+	a.Scheduler.StartScheduler(&wg)
+	defer a.Scheduler.StopScheduler()
+
+	wg.Wait()
 }

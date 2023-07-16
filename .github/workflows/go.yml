@@ -23,6 +23,3 @@ jobs:
 
     - name: Test
       run: go test -v ./...
-
-    - name: Bench
-      run: go test -bench=. ./storage -benchtime=100x
