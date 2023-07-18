@@ -1,7 +1,8 @@
-package container
+package app
 
 import (
 	"andreishchedrin/gopherMQ/cleaner"
+	"andreishchedrin/gopherMQ/config"
 	"andreishchedrin/gopherMQ/db"
 	"andreishchedrin/gopherMQ/logger"
 	"andreishchedrin/gopherMQ/repository"
@@ -11,8 +12,6 @@ import (
 	"andreishchedrin/gopherMQ/storage"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-collections/collections/queue"
-	"os"
-	"strconv"
 	"sync"
 )
 
@@ -29,40 +28,28 @@ type App struct {
 	GrpcServer *server.Grpc
 }
 
-func NewApp() *App {
-	loggerInstance := &logger.Logger{File: os.Getenv("LOG_FILE")}
-
-	enableDbLog, err := strconv.Atoi(os.Getenv("ENABLE_DB_LOG"))
-	if err != nil {
-		panic("can't parse params")
-	}
+func NewApp(config *config.Config) *App {
+	loggerInstance := &logger.Logger{File: config.LogFile}
 
 	dbInstance := &db.Sqlite{
-		ConnectInstance: db.Connect(os.Getenv("DB_DRIVER_NAME"), os.Getenv("DB_DATA_SOURCE_NAME")),
+		ConnectInstance: db.Connect(config.DbDriverName, config.DbDataSourceName),
 		Logger:          loggerInstance,
-		Debug:           enableDbLog,
+		Debug:           config.EnableDbLog,
 	}
 
 	repoInstance := &repository.SqliteRepository{SqliteDb: dbInstance, Logger: loggerInstance}
-
-	period := os.Getenv("PERSISTENT_TTL_DAYS")
-	cleanerInstance := &cleaner.Cleaner{Repo: repoInstance, Period: period}
-
-	enableStorageLog, err := strconv.Atoi(os.Getenv("ENABLE_STORAGE_LOG"))
-	if err != nil {
-		panic("can't parse params")
-	}
+	cleanerInstance := &cleaner.Cleaner{Repo: repoInstance, Period: config.PersistentTtlDays}
 
 	storageInstance := &storage.QueueStorage{
 		Data:   make(map[string]*queue.Queue),
 		Logger: loggerInstance,
-		Debug:  enableStorageLog,
+		Debug:  config.EnableStorageLog,
 	}
 
 	messageService := &service.MessageService{Storage: storageInstance}
 
 	grpcServer := &server.Grpc{
-		Port:           os.Getenv("GRPC_PORT"),
+		Port:           config.GrpcPort,
 		Logger:         loggerInstance,
 		MessageService: messageService,
 		Repo:           repoInstance,
@@ -70,22 +57,17 @@ func NewApp() *App {
 
 	httpServer := &server.FiberServer{
 		App:            fiber.New(),
-		Port:           os.Getenv("HTTP_PORT"),
+		Port:           config.HttpPort,
 		Logger:         loggerInstance,
 		Repo:           repoInstance,
 		Storage:        storageInstance,
 		MessageService: messageService,
 	}
 
-	timeout, err := strconv.Atoi(os.Getenv("SCHEDULER_TIMEOUT"))
-	if err != nil {
-		panic("can't parse params")
-	}
-
 	schedulerInstance := &scheduler.Scheduler{
 		Repo:    repoInstance,
 		Storage: storageInstance,
-		Timeout: timeout,
+		Timeout: config.SchedulerTimeout,
 		//TODO remove it
 		ServerMode: "",
 	}

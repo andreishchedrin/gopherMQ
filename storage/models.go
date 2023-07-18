@@ -3,6 +3,7 @@ package storage
 import (
 	"andreishchedrin/gopherMQ/logger"
 	"github.com/golang-collections/collections/queue"
+	"sync"
 	"time"
 )
 
@@ -21,6 +22,7 @@ type Value struct {
 }
 
 type QueueStorage struct {
+	mu     sync.RWMutex
 	Data   map[string]*queue.Queue
 	Logger logger.AbstractLogger
 	Debug  int

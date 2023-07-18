@@ -5,7 +5,6 @@ import (
 	"andreishchedrin/gopherMQ/repository"
 	"andreishchedrin/gopherMQ/server/message"
 	"andreishchedrin/gopherMQ/service"
-	"errors"
 	"google.golang.org/grpc"
 	"log"
 	"net"
@@ -17,6 +16,7 @@ type Grpc struct {
 	Logger         logger.AbstractLogger
 	MessageService service.AbstractMessageService
 	Repo           repository.AbstractRepository
+	Server         *grpc.Server
 }
 
 func (g *Grpc) Serve() error {
@@ -28,17 +28,17 @@ func (g *Grpc) Serve() error {
 	pusherServer := message.NewPusherServer{MessageService: g.MessageService, Repo: g.Repo}
 	pullerServer := message.NewPullerServer{MessageService: g.MessageService, Repo: g.Repo}
 
-	grpcServer := grpc.NewServer()
-	message.RegisterPusherServer(grpcServer, &pusherServer)
-	message.RegisterPullerServer(grpcServer, &pullerServer)
+	g.Server = grpc.NewServer()
+	message.RegisterPusherServer(g.Server, &pusherServer)
+	message.RegisterPullerServer(g.Server, &pullerServer)
 
-	err = grpcServer.Serve(l)
+	err = g.Server.Serve(l)
 	return err
 }
 
 func (g *Grpc) Shutdown() error {
-	//@TODO
-	return errors.New("temp")
+	g.Server.GracefulStop()
+	return nil
 }
 
 func (g *Grpc) Start(wg *sync.WaitGroup) {
@@ -50,8 +50,5 @@ func (g *Grpc) Start(wg *sync.WaitGroup) {
 }
 
 func (g *Grpc) Stop() error {
-	//@TODO
-	return errors.New("temp")
+	return g.Shutdown()
 }
-
-func (g *Grpc) WebsocketListen() {}

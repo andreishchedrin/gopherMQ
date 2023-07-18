@@ -1,11 +1,16 @@
 package main
 
 import (
-	_ "andreishchedrin/gopherMQ/config"
-	"andreishchedrin/gopherMQ/container"
+	"andreishchedrin/gopherMQ/app"
+	"andreishchedrin/gopherMQ/config"
 )
 
 func main() {
-	app := container.NewApp()
+	cfg, err := config.NewConfig("config/.env")
+	if err != nil {
+		panic(err)
+	}
+
+	app := app.NewApp(cfg)
 	app.Start()
 }

@@ -29,6 +29,7 @@ func (qs *QueueStorage) Start(wg *sync.WaitGroup) {
 }
 
 func (qs *QueueStorage) Set(key Key) *queue.Queue {
+	qs.mu.Lock()
 	_, ok := qs.Data[key.Name]
 	if ok {
 		q := qs.Data[key.Name]
@@ -36,11 +37,14 @@ func (qs *QueueStorage) Set(key Key) *queue.Queue {
 	}
 	qs.Data[key.Name] = queue.New()
 	q := qs.Data[key.Name]
+	qs.mu.Unlock()
 	return q
 }
 
 func (qs *QueueStorage) Get(key Key) (*queue.Queue, error) {
+	qs.mu.RLock()
 	q, ok := qs.Data[key.Name]
+	qs.mu.RUnlock()
 	if ok {
 		return q, nil
 	}
@@ -48,6 +52,8 @@ func (qs *QueueStorage) Get(key Key) (*queue.Queue, error) {
 }
 
 func (qs *QueueStorage) Delete(key Key) (bool, error) {
+	qs.mu.Lock()
+	defer qs.mu.Unlock()
 	_, ok := qs.Data[key.Name]
 	if ok {
 		delete(qs.Data, key.Name)
