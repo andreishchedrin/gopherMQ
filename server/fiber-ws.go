@@ -24,6 +24,8 @@ func (s *FiberServer) WebsocketListen() {
 
 	for {
 		select {
+		case <-s.WsExit:
+			return
 		case connection := <-register:
 			clients[connection] = Client{}
 			if debug == 1 {

@@ -12,7 +12,6 @@ import (
 	"andreishchedrin/gopherMQ/storage"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-collections/collections/queue"
-	"sync"
 )
 
 type App struct {
@@ -41,9 +40,10 @@ func NewApp(config *config.Config) *App {
 	cleanerInstance := &cleaner.Cleaner{Repo: repoInstance, Period: config.PersistentTtlDays}
 
 	storageInstance := &storage.QueueStorage{
-		Data:   make(map[string]*queue.Queue),
-		Logger: loggerInstance,
-		Debug:  config.EnableStorageLog,
+		Data:        make(map[string]*queue.Queue),
+		Logger:      loggerInstance,
+		Debug:       config.EnableStorageLog,
+		StorageExit: make(chan bool),
 	}
 
 	messageService := &service.MessageService{Storage: storageInstance}
@@ -62,6 +62,7 @@ func NewApp(config *config.Config) *App {
 		Repo:           repoInstance,
 		Storage:        storageInstance,
 		MessageService: messageService,
+		WsExit:         make(chan bool),
 	}
 
 	schedulerInstance := &scheduler.Scheduler{
@@ -86,25 +87,20 @@ func NewApp(config *config.Config) *App {
 }
 
 func (a *App) Start() {
-	var wg sync.WaitGroup
-
 	a.Db.Prepare()
-	defer a.Db.Close()
-
-	a.Cleaner.StartCleaner(&wg)
-	defer a.Cleaner.StopCleaner()
-
-	a.Storage.Start(&wg)
-
-	a.HttpServer.Start(&wg)
+	a.Cleaner.StartCleaner()
+	a.Storage.Start()
+	a.HttpServer.Start()
 	go a.HttpServer.WebsocketListen()
-	defer a.HttpServer.Stop()
+	a.GrpcServer.Start()
+	a.Scheduler.StartScheduler()
+}
 
-	a.GrpcServer.Start(&wg)
-	defer a.GrpcServer.Stop()
-
-	a.Scheduler.StartScheduler(&wg)
-	defer a.Scheduler.StopScheduler()
-
-	wg.Wait()
+func (a *App) Shutdown() {
+	a.Db.Close()
+	a.Cleaner.StopCleaner()
+	a.Storage.StopStorage()
+	a.HttpServer.Stop()
+	a.GrpcServer.Stop()
+	a.Scheduler.StopScheduler()
 }

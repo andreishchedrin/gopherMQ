@@ -4,22 +4,22 @@ import (
 	"andreishchedrin/gopherMQ/config"
 	"bytes"
 	"encoding/json"
+	"github.com/stretchr/testify/assert"
 	"io"
 	"net/http/httptest"
 	"testing"
 )
 
 func TestAppPushPull(t *testing.T) {
-	cfg, err := config.NewConfig("../config/.env")
+	cfg, err := config.NewConfig("../config/.env.test")
 	if err != nil {
 		panic(err)
 	}
 
 	app := NewApp(cfg)
-	go func() {
-		app.Start()
-	}()
-
+	app.Start()
+	//TODO
+	panic("temp")
 	t.Run("push-pull", func(t *testing.T) {
 		app.HttpServer.App.Post("/push", app.HttpServer.PushHandler)
 
@@ -67,9 +67,8 @@ func TestAppPushPull(t *testing.T) {
 			t.Error(err)
 		}
 
-		//TODO temporary assert package go ver conflict
-		if string(b2) != "payload" {
-			t.Error("test failed")
-		}
+		assert.Equal(t, "\"payload\"", string(b2))
+		app.Shutdown()
 	})
+
 }

@@ -4,12 +4,11 @@ import (
 	"andreishchedrin/gopherMQ/repository"
 	"andreishchedrin/gopherMQ/server"
 	"andreishchedrin/gopherMQ/storage"
-	"sync"
 	"time"
 )
 
 type AbstractScheduler interface {
-	StartScheduler(wg *sync.WaitGroup)
+	StartScheduler()
 	StopScheduler()
 }
 
@@ -22,11 +21,8 @@ type Scheduler struct {
 
 var SchedulerExit = make(chan bool)
 
-func (s *Scheduler) StartScheduler(wg *sync.WaitGroup) {
-	wg.Add(1)
-
+func (s *Scheduler) StartScheduler() {
 	go func() {
-		defer wg.Done()
 		for {
 			select {
 			case <-SchedulerExit:

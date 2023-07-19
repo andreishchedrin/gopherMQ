@@ -8,7 +8,6 @@ import (
 	"google.golang.org/grpc"
 	"log"
 	"net"
-	"sync"
 )
 
 type Grpc struct {
@@ -41,10 +40,8 @@ func (g *Grpc) Shutdown() error {
 	return nil
 }
 
-func (g *Grpc) Start(wg *sync.WaitGroup) {
-	wg.Add(1)
+func (g *Grpc) Start() {
 	go func() {
-		defer wg.Done()
 		g.Serve()
 	}()
 }

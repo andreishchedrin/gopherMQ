@@ -32,6 +32,7 @@ type FiberServer struct {
 	Repo           repository.AbstractRepository
 	Storage        storage.AbstractStorage
 	MessageService service.AbstractMessageService
+	WsExit         chan bool
 }
 
 type AddTask struct {

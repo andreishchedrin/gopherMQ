@@ -3,21 +3,22 @@ package storage
 import (
 	"fmt"
 	"github.com/golang-collections/collections/queue"
-	"sync"
 	"time"
 )
 
 var PushData = make(chan Message)
 
-func (qs *QueueStorage) Start(wg *sync.WaitGroup) {
-	wg.Add(1)
+func (qs *QueueStorage) Start() {
 	go func() {
-		defer wg.Done()
 		for {
 			select {
+			case <-qs.StorageExit:
+				return
 			case item := <-PushData:
 				q := qs.Set(item.Key)
+				qs.mu.Lock()
 				q.Enqueue(item.Value)
+				qs.mu.Unlock()
 				if qs.Debug == 1 {
 					qs.Logger.Log(fmt.Sprintf("Put to queue: %s - %s.", item.Key.Name, item.Value.Text))
 				}
@@ -63,6 +64,8 @@ func (qs *QueueStorage) Delete(key Key) (bool, error) {
 }
 
 func (qs *QueueStorage) Flush() {
+	qs.mu.Lock()
+	defer qs.mu.Unlock()
 	for k := range qs.Data {
 		delete(qs.Data, k)
 	}
@@ -86,7 +89,13 @@ func (qs *QueueStorage) Pull(name string) (string, error) {
 		return "Queue is empty.", nil
 	}
 
+	qs.mu.Lock()
 	res := q.Dequeue()
+	qs.mu.Unlock()
 
 	return res.(Value).Text, nil
+}
+
+func (qs *QueueStorage) StopStorage() {
+	qs.StorageExit <- true
 }

@@ -2,12 +2,11 @@ package cleaner
 
 import (
 	"andreishchedrin/gopherMQ/repository"
-	"sync"
 	"time"
 )
 
 type AbstractCleaner interface {
-	StartCleaner(wg *sync.WaitGroup)
+	StartCleaner()
 	StopCleaner()
 }
 
@@ -18,10 +17,8 @@ type Cleaner struct {
 
 var CleanerExit = make(chan bool)
 
-func (c *Cleaner) StartCleaner(wg *sync.WaitGroup) {
-	wg.Add(1)
+func (c *Cleaner) StartCleaner() {
 	go func() {
-		defer wg.Done()
 		for {
 			select {
 			case <-CleanerExit:

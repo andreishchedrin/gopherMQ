@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/websocket/v2"
-	"sync"
 )
 
 func (s *FiberServer) Serve() error {
@@ -56,10 +55,8 @@ func (s *FiberServer) Shutdown() error {
 	return s.App.Shutdown()
 }
 
-func (s *FiberServer) Start(wg *sync.WaitGroup) {
-	wg.Add(1)
+func (s *FiberServer) Start() {
 	go func() {
-		defer wg.Done()
 		err := s.Serve()
 		if err != nil {
 			s.Logger.Log(err)
@@ -68,5 +65,6 @@ func (s *FiberServer) Start(wg *sync.WaitGroup) {
 }
 
 func (s *FiberServer) Stop() error {
+	s.WsExit <- true
 	return s.Shutdown()
 }
