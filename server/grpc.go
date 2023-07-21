@@ -18,7 +18,7 @@ type Grpc struct {
 	Server         *grpc.Server
 }
 
-func (g *Grpc) Serve() error {
+func (g *Grpc) Serve() {
 	l, err := net.Listen("tcp", ":"+g.Port)
 	if err != nil {
 		log.Fatal(err)
@@ -31,8 +31,12 @@ func (g *Grpc) Serve() error {
 	message.RegisterPusherServer(g.Server, &pusherServer)
 	message.RegisterPullerServer(g.Server, &pullerServer)
 
-	err = g.Server.Serve(l)
-	return err
+	go func() {
+		err = g.Server.Serve(l)
+		if err != nil {
+			panic(err)
+		}
+	}()
 }
 
 func (g *Grpc) Shutdown() error {
@@ -41,9 +45,7 @@ func (g *Grpc) Shutdown() error {
 }
 
 func (g *Grpc) Start() {
-	go func() {
-		g.Serve()
-	}()
+	g.Serve()
 }
 
 func (g *Grpc) Stop() error {

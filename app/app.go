@@ -11,6 +11,7 @@ import (
 	"andreishchedrin/gopherMQ/service"
 	"andreishchedrin/gopherMQ/storage"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/websocket/v2"
 	"github.com/golang-collections/collections/queue"
 )
 
@@ -22,9 +23,8 @@ type App struct {
 	Scheduler      scheduler.AbstractScheduler
 	Storage        storage.AbstractStorage
 	MessageService service.AbstractMessageService
-	//TODO separate this interface
-	HttpServer *server.FiberServer
-	GrpcServer *server.Grpc
+	HttpServer     *server.FiberServer
+	GrpcServer     *server.Grpc
 }
 
 func NewApp(config *config.Config) *App {
@@ -40,10 +40,9 @@ func NewApp(config *config.Config) *App {
 	cleanerInstance := &cleaner.Cleaner{Repo: repoInstance, Period: config.PersistentTtlDays}
 
 	storageInstance := &storage.QueueStorage{
-		Data:        make(map[string]*queue.Queue),
-		Logger:      loggerInstance,
-		Debug:       config.EnableStorageLog,
-		StorageExit: make(chan bool),
+		Data:   make(map[string]*queue.Queue),
+		Logger: loggerInstance,
+		Debug:  config.EnableStorageLog,
 	}
 
 	messageService := &service.MessageService{Storage: storageInstance}
@@ -62,7 +61,17 @@ func NewApp(config *config.Config) *App {
 		Repo:           repoInstance,
 		Storage:        storageInstance,
 		MessageService: messageService,
-		WsExit:         make(chan bool),
+		Ws: &server.FiberServerWs{
+			Channels:         make(map[string]map[*websocket.Conn]server.Client),
+			Clients:          make(map[*websocket.Conn]server.Client),
+			Register:         make(chan *websocket.Conn),
+			Ws:               make(chan *websocket.Conn),
+			Unregister:       make(chan *websocket.Conn),
+			MessageErrors:    make(chan error),
+			BroadcastMessage: make(chan *server.Push),
+			EnableWsLog:      config.EnableWsLog,
+		},
+		WsExit: make(chan bool),
 	}
 
 	schedulerInstance := &scheduler.Scheduler{
@@ -97,10 +106,7 @@ func (a *App) Start() {
 }
 
 func (a *App) Shutdown() {
-	a.Db.Close()
-	a.Cleaner.StopCleaner()
-	a.Storage.StopStorage()
 	a.HttpServer.Stop()
 	a.GrpcServer.Stop()
-	a.Scheduler.StopScheduler()
+	a.Db.Close()
 }

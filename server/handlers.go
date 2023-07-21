@@ -18,7 +18,7 @@ func (s *FiberServer) BroadcastHandler(c *fiber.Ctx) error {
 		return c.JSON(errors)
 	}
 
-	BroadcastMessage <- push
+	s.Ws.BroadcastMessage <- push
 
 	return c.SendStatus(200)
 }

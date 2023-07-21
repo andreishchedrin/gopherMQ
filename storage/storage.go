@@ -10,7 +10,6 @@ type AbstractStorage interface {
 	Delete(key Key) (bool, error)
 	Flush()
 	Start()
-	StopStorage()
 	Push(name string, message string)
 	Pull(name string) (string, error)
 }

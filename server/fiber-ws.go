@@ -3,61 +3,45 @@ package server
 import (
 	"fmt"
 	"github.com/gofiber/websocket/v2"
-	"os"
-	"strconv"
 )
 
-var channels = make(map[string]map[*websocket.Conn]Client)
-var clients = make(map[*websocket.Conn]Client)
-var register = make(chan *websocket.Conn)
-var ws = make(chan *websocket.Conn)
-var unregister = make(chan *websocket.Conn)
-var messageErrors = make(chan error)
-var BroadcastMessage = make(chan *Push)
-
 func (s *FiberServer) WebsocketListen() {
-	//TODO to config
-	debug, err := strconv.Atoi(os.Getenv("ENABLE_WS_LOG"))
-	if err != nil {
-		panic("can't parse params")
-	}
-
 	for {
 		select {
 		case <-s.WsExit:
 			return
-		case connection := <-register:
-			clients[connection] = Client{}
-			if debug == 1 {
+		case connection := <-s.Ws.Register:
+			s.Ws.Clients[connection] = Client{}
+			if s.Ws.EnableWsLog == 1 {
 				s.Logger.Log(fmt.Sprintf("Connection registered %v", connection))
-				s.Logger.Log(fmt.Sprintf("Clients pool now is:  %v", clients))
+				s.Logger.Log(fmt.Sprintf("Clients pool now is:  %v", s.Ws.Clients))
 			}
-		case connection := <-unregister:
-			delete(clients, connection)
-			if debug == 1 {
+		case connection := <-s.Ws.Unregister:
+			delete(s.Ws.Clients, connection)
+			if s.Ws.EnableWsLog == 1 {
 				s.Logger.Log("Connection unregistered")
 			}
-		case subscribe := <-ws:
-			_, ok := clients[subscribe]
+		case subscribe := <-s.Ws.Ws:
+			_, ok := s.Ws.Clients[subscribe]
 			if ok {
 				messageType, messageBody, err := subscribe.ReadMessage()
 				if err != nil {
-					messageErrors <- err
+					s.Ws.MessageErrors <- err
 				}
 
 				if messageType == websocket.TextMessage {
-					channels[string(messageBody)] = make(map[*websocket.Conn]Client)
-					channels[string(messageBody)][subscribe] = Client{}
+					s.Ws.Channels[string(messageBody)] = make(map[*websocket.Conn]Client)
+					s.Ws.Channels[string(messageBody)][subscribe] = Client{}
 				}
 
-				if debug == 1 {
+				if s.Ws.EnableWsLog == 1 {
 					s.Logger.Log(fmt.Sprintf("Websocket message received of type: %v", messageType))
 					s.Logger.Log(fmt.Sprintf("Message received: %s", string(messageBody)))
 				}
 			}
 
-		case message := <-BroadcastMessage:
-			for connection := range channels[message.Channel] {
+		case message := <-s.Ws.BroadcastMessage:
+			for connection := range s.Ws.Channels[message.Channel] {
 				if err := connection.WriteMessage(websocket.TextMessage, []byte(message.Message)); err != nil {
 					s.Logger.Log(fmt.Sprintf("write error: %v", err))
 					connection.WriteMessage(websocket.CloseMessage, []byte{})

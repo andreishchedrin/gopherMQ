@@ -6,6 +6,7 @@ import (
 	"andreishchedrin/gopherMQ/service"
 	"andreishchedrin/gopherMQ/storage"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/websocket/v2"
 )
 
 type Push struct {
@@ -32,7 +33,19 @@ type FiberServer struct {
 	Repo           repository.AbstractRepository
 	Storage        storage.AbstractStorage
 	MessageService service.AbstractMessageService
+	Ws             *FiberServerWs
 	WsExit         chan bool
+}
+
+type FiberServerWs struct {
+	Channels         map[string]map[*websocket.Conn]Client
+	Clients          map[*websocket.Conn]Client
+	Register         chan *websocket.Conn
+	Ws               chan *websocket.Conn
+	Unregister       chan *websocket.Conn
+	MessageErrors    chan error
+	BroadcastMessage chan *Push
+	EnableWsLog      int
 }
 
 type AddTask struct {

@@ -12,8 +12,6 @@ func (qs *QueueStorage) Start() {
 	go func() {
 		for {
 			select {
-			case <-qs.StorageExit:
-				return
 			case item := <-PushData:
 				q := qs.Set(item.Key)
 				qs.mu.Lock()
@@ -94,8 +92,4 @@ func (qs *QueueStorage) Pull(name string) (string, error) {
 	qs.mu.Unlock()
 
 	return res.(Value).Text, nil
-}
-
-func (qs *QueueStorage) StopStorage() {
-	qs.StorageExit <- true
 }

@@ -20,17 +20,17 @@ func (s *FiberServer) Serve() error {
 
 	s.App.Get("/ws", websocket.New(func(c *websocket.Conn) {
 		defer func() {
-			unregister <- c
+			s.Ws.Unregister <- c
 			c.Close()
 		}()
 
 		// Register the client
-		register <- c
+		s.Ws.Register <- c
 
 		for {
-			ws <- c
+			s.Ws.Ws <- c
 			select {
-			case messageError := <-messageErrors:
+			case messageError := <-s.Ws.MessageErrors:
 				if messageError != nil {
 					if websocket.IsUnexpectedCloseError(messageError, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 						s.Logger.Log(fmt.Sprintf("Read error: %v", messageError))

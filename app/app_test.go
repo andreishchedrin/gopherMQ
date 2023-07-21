@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"io"
 	"net/http/httptest"
+	"os"
 	"testing"
 )
 
@@ -18,8 +19,11 @@ func TestAppPushPull(t *testing.T) {
 
 	app := NewApp(cfg)
 	app.Start()
-	//TODO
-	panic("temp")
+	defer func() {
+		os.Remove("test.log")
+		os.Remove("persistent_test.db")
+	}()
+
 	t.Run("push-pull", func(t *testing.T) {
 		app.HttpServer.App.Post("/push", app.HttpServer.PushHandler)
 
@@ -68,7 +72,7 @@ func TestAppPushPull(t *testing.T) {
 		}
 
 		assert.Equal(t, "\"payload\"", string(b2))
-		app.Shutdown()
 	})
 
+	app.Shutdown()
 }

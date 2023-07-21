@@ -16,6 +16,7 @@ type Config struct {
 	GrpcPort          string
 	HttpPort          string
 	SchedulerTimeout  int
+	EnableWsLog       int
 }
 
 func NewConfig(path string) (*Config, error) {
@@ -39,6 +40,11 @@ func NewConfig(path string) (*Config, error) {
 		panic("can't parse params")
 	}
 
+	ws, err := strconv.Atoi(os.Getenv("ENABLE_WS_LOG"))
+	if err != nil {
+		panic("can't parse params")
+	}
+
 	return &Config{
 		LogFile:           os.Getenv("LOG_FILE"),
 		EnableDbLog:       enableDbLog,
@@ -49,5 +55,6 @@ func NewConfig(path string) (*Config, error) {
 		GrpcPort:          os.Getenv("GRPC_PORT"),
 		HttpPort:          os.Getenv("HTTP_PORT"),
 		SchedulerTimeout:  timeout,
+		EnableWsLog:       ws,
 	}, nil
 }

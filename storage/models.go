@@ -22,9 +22,8 @@ type Value struct {
 }
 
 type QueueStorage struct {
-	mu          sync.RWMutex
-	Data        map[string]*queue.Queue
-	Logger      logger.AbstractLogger
-	Debug       int
-	StorageExit chan bool
+	mu     sync.RWMutex
+	Data   map[string]*queue.Queue
+	Logger logger.AbstractLogger
+	Debug  int
 }
