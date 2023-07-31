@@ -4,6 +4,9 @@ import (
 	"andreishchedrin/gopherMQ/app"
 	"andreishchedrin/gopherMQ/config"
 	"context"
+	"log"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"syscall"
@@ -24,6 +27,10 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	go func() {
+		log.Println(http.ListenAndServe("localhost:6060", nil))
+	}()
 
 	app := app.NewApp(cfg)
 	app.Start()

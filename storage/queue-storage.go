@@ -13,8 +13,8 @@ func (qs *QueueStorage) Start() {
 		for {
 			select {
 			case item := <-PushData:
-				q := qs.Set(item.Key)
 				qs.mu.Lock()
+				q := qs.Set(item.Key)
 				q.Enqueue(item.Value)
 				qs.mu.Unlock()
 				if qs.Debug == 1 {
@@ -28,7 +28,6 @@ func (qs *QueueStorage) Start() {
 }
 
 func (qs *QueueStorage) Set(key Key) *queue.Queue {
-	qs.mu.Lock()
 	_, ok := qs.Data[key.Name]
 	if ok {
 		q := qs.Data[key.Name]
@@ -36,14 +35,11 @@ func (qs *QueueStorage) Set(key Key) *queue.Queue {
 	}
 	qs.Data[key.Name] = queue.New()
 	q := qs.Data[key.Name]
-	qs.mu.Unlock()
 	return q
 }
 
 func (qs *QueueStorage) Get(key Key) (*queue.Queue, error) {
-	qs.mu.RLock()
 	q, ok := qs.Data[key.Name]
-	qs.mu.RUnlock()
 	if ok {
 		return q, nil
 	}
@@ -74,6 +70,7 @@ func (qs *QueueStorage) Push(name string, message string) {
 }
 
 func (qs *QueueStorage) Pull(name string) (string, error) {
+	qs.mu.Lock()
 	q, err := qs.Get(Key{name})
 	if err != nil {
 		return err.Error(), err
@@ -87,7 +84,6 @@ func (qs *QueueStorage) Pull(name string) (string, error) {
 		return "Queue is empty.", nil
 	}
 
-	qs.mu.Lock()
 	res := q.Dequeue()
 	qs.mu.Unlock()
 
